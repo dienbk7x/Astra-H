@@ -1,3 +1,5 @@
+#define STRING_VER 0.1
+
 #include <HardwareCAN.h>
 /*
  * This application receives several frames containing various data. It also produces data that are sent periodically using another several frames.
@@ -130,7 +132,7 @@ CanMsg msg ;
 ///
 void CAN_a_33_Setup(void)
 {	// start CAN_a_33_Setup
-
+  Serial2.println("canBus Initialization: LS CAN");
   CAN_STATUS Stat ;
   afio_init(); // this will restart subsystem and make it work!
   canBus.map(CAN_GPIO_PA11_PA12);  
@@ -138,23 +140,37 @@ void CAN_a_33_Setup(void)
   canBus.filter(0, 0, 0);
   canBus.set_irq_mode();
   Stat = canBus.status();
-  if (Stat != CAN_OK) {digitalWrite(PC13, LOW);}
-// /* Your own error processing here */  ;  // Initialization failed
+  if (Stat != CAN_OK) 	{
+						digitalWrite(PC13, LOW);
+						Serial2.println("canBus Initialization failed for LS CAN");
+						delay(1000);
+						}
+						else 
+						{
+						Serial2.println("LS CAN = OK");
+						}
  }
 	// end CAN_a_33_Setup
 void LS_CAN(void) { CAN_a_33_Setup(); }	
 	
 void CAN_b_95_Setup(void)
 {	// start CAN_b_95_Setup
+  Serial2.println("canBus Initialization: MS CAN");
   CAN_STATUS Stat ;
   canBus.map(CAN_GPIO_PB8_PB9);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);
   canBus.filter(0, 0, 0);
   canBus.set_irq_mode();
   Stat = canBus.status();
-  if (Stat != CAN_OK)  {digitalWrite(PC13, LOW);}
-//     /* Your own error processing here */ ;   // Initialization failed
-//  delay(T_DELAY);
+  if (Stat != CAN_OK)  	{
+						digitalWrite(PC13, LOW);
+						Serial2.println("canBus Initialization failed for MS CAN");
+						delay(1000);
+						}
+						else 
+						{
+						Serial2.println("MS CAN = OK");
+						}
 }
 	// end CAN_b_95_Setup
 void MS_CAN(void) { CAN_b_95_Setup(); }	
@@ -196,6 +212,7 @@ CAN_TX_MBX CANsend(CanMsg *pmsg)
 #endif
   }
   while(mbx == CAN_TX_NO_MBX) ;       // Waiting outbound frames will eventually be sent, unless there is a CAN bus failure.
+   Serial2.println("CANsend OK");
   return mbx ;
 }
 	// end CAN_TX_MBX CANsend
@@ -224,15 +241,28 @@ void SendCANmessage( // general function to send any message
 	msg.Data[7] = d7 ;
 
 	digitalWrite(PC13, LOW);    // turn the onboard LED on
+	// print a copy of sent message
+	Serial1.println("Sending msg:");
+	Serial1.print(id, HEX);
+	Serial1.print(" #");
+	
+	for (int i=0; i<dlength;++i)
+	{
+		Serial1.print(" ");
+		Serial1.print(msg.Data[i], HEX);
+	}
+	Serial1.println();
+
 	CANsend(&msg) ;      // Send this frame            
 	digitalWrite(PC13, HIGH);   // turn the LED off 
-	delay(T_DELAY);  
+
 }
 	// end SendCANmessage
 	
 void SendMessages()
 {
 /// list here everything to be sent
+Serial2.println("Sending all messages");
 }	
 	
 
@@ -241,16 +271,18 @@ void SendMessages()
 // Note : frames are not fully checked for correctness: DLC value is not checked, neither are the IDE and RTR fields. However, the data is guaranteed to be corrrect.
 void ProcessMessages(void) // all main code is here!
 {	// start ProcessMessages
+Serial2.println("Start processing incoming messages");
+Serial2.println("Waiting for CAN message...");
+
   int i ;
   
   CanMsg *r_msg;
 
   // Loop for every message in the fifo
-	int cntr=0;
-  while ( ( (r_msg = canBus.recv()) != NULL ) and (cntr<20) )
+	int cntr=100; // counter to avoid infinite loop
+  while ( ( (r_msg = canBus.recv()) != NULL ) and (cntr>0) )
   {	//	start while ((r_msg = canBus.recv()) != NULL)
-    //Serial2.println(cntr++);
-    cntr++;
+    cntr--;
 	CANquietTime = 0 ;              // Reset at each received frame
     CANError = false ;              // Clear CAN silence error
 	//delay(50);
@@ -283,6 +315,7 @@ void ProcessMessages(void) // all main code is here!
     switch ( r_msg->ID )
     {	//	start switch ( r_msg->ID )
 		case 0x206: //MS_WHEEL_BUTTONS_ID: // steering wheel buttons
+			Serial2.println("steering wheel button detected");
 			switch (r_msg->Data[1])
 			// setting the flag_blocked flag. Button *))
 			{
@@ -302,9 +335,11 @@ void ProcessMessages(void) // all main code is here!
 				//default:
 				//break;
 			}
+		Serial2.println("end of steering wheel button prosessing");
 		break;
 	/**/		
 		case MS_CLIMA_CONTROLS_ID: //climate controls
+			Serial2.println("clima controls detected");
 			switch (r_msg->Data[1])
 			{
 				case 0x17: //MS_BTN_CLIMA_CENTER_WHEEL:
@@ -364,10 +399,11 @@ void ProcessMessages(void) // all main code is here!
 				//default:
 				//break;
 			}
-			
+		Serial2.println("end of clima controls prosessing");	
 		break;
 	/**/		
 		case MS_CLIMA_INFO_ID: // 	climate info
+			Serial2.println("climate info detected");
 			switch (r_msg->Data[0]) // mode? 
 			{
 				case 0x21: // normal mode, change flow direction
@@ -445,13 +481,15 @@ void ProcessMessages(void) // all main code is here!
 				//break;
 			} 
 			// end switch (r_msg->Data[0]) 
+			Serial2.println("End of climate info processing");
 		break; // case 0x6C8: // ID = climate info
 			
-		default :  // Any frame with a different identifier is ignored  /// hidden because of error!!!!!
-		//Serial2.println("reached default switch for ID");
-		break ;
+		/*default :  // Any frame with a different identifier is ignored  /// hidden because of error!!!!!
+		Serial2.println("reached default switch for ID");
+		break ;*/
     }
 		//	end   switch ( r_msg->ID )
+	Serial2.println("end of message processing. Clear input buffer...");		
     canBus.free();                          // Remove processed message from buffer, whatever the identifier
 #ifdef USE_MULTITASK
     vTaskDelay( 1 ) ;                       // Infinite loops are not multitasking-friendly
@@ -484,8 +522,12 @@ void SendCANmsg_XXX(void)	// dedicated function to send specific message
 	
 void checkUSBmode()
 {	//	start checkUSBmode()
+	Serial2.println("pin B12 set to input mode");
 	pinMode(28, INPUT); // B12 = 16+12 = 28
 	flag_usbMode = digitalRead(28); // if B12 is HIGH, then switch to programming mode
+	Serial1.print("pin B12 is ");
+    Serial1.println(flag_usbMode);
+
 	if (flag_usbMode)
 	{
 		Serial2.println("Entering USB mode");
@@ -522,15 +564,24 @@ void setup() {
 
   	Serial2.begin(115200); // USART2 on A2-A3 pins
 	Serial2.println("Hello World!");
-	Serial2.println("Starting \"AstraH_climate\" v0.01 program");
+	Serial2.println("Starting \"AstraH MS Module\" v STRING_VER program");
 	pinMode(PC13, OUTPUT); // LED
 	digitalWrite(PC13, PC13ON);
 	
-	checkUSBmode; 
+	checkUSBmode(); 
 	
 	// small self-presentation in MS CAN
+	Serial2.println("setting block flag to 0");
 	flag_blocked=false;
+	
 	MS_CAN();
+	
+	Serial2.println("Sending something to CAN");
+	SendCANmessage(0x208, 0); // dummy
+	Serial2.println("Sending wakeupscreen to CAN");
+	SendCANmessage(0x697, 8, 0x47, 0x00, 0x60, 0x00, 0x02, 0x00, 0x00, 0x80); // wake up screen
+	Serial2.println("Press SETTINGS two times...");
+	
 	SendCANmessage(MS_MEDIA_BUTTONS_ID,3,BTN_PRESSED,MS_BTN_SETTINGS,0x00); // press settings      
 	delay(50);
 	SendCANmessage(MS_MEDIA_BUTTONS_ID,3,BTN_RELEASED,MS_BTN_SETTINGS,0x00); // release settings      
@@ -539,9 +590,11 @@ void setup() {
 	delay(50);
 	SendCANmessage(MS_MEDIA_BUTTONS_ID,3,BTN_RELEASED,MS_BTN_SETTINGS,0x00); // release settings      
 	delay(50);
-	
-	// small self-presentation in LS CAN
+    Serial2.println(" .. finished");
+
+	  // small self-presentation in LS CAN
 	LS_CAN();
+	Serial2.println("Countdoun on the ODO screen...");	
 	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00);       
 	delay(200);
 	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x11,0x11,0x11);       
@@ -556,18 +609,23 @@ void setup() {
 	delay(200);
 	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00);       
 	canBus.free();
+    Serial2.println(" .. finished");
 	
 	digitalWrite(PC13, PC13OFF);
 	clim1 = clim2 = clim3 = 0x00;
 	flag_climChanged = false;
 	
 
-  
+    Serial2.println("Setup finished, going to loop()");
   }
 
 void loop() {
+Serial1.println("Start of loop()");
+
   // Process incoming messages periodically (should be often enough to avoid overflowing the fifo)
+  Serial2.println("Starting ProcessMessages()...");
   ProcessMessages() ;          // Process all incoming messages, update local variables accordingly
+  Serial2.println("Finished ProcessMessages()");
 
   // This is an example of timeout management. Here it is global to all received frames; 
   // it could be on a frame by frame basis, with as many control variables as the number of frames.
@@ -576,6 +634,7 @@ void loop() {
   {
     CANquietTime = CAN_TIMEOUT + 1 ;            // To prevent overflowing this variable if silence prolongs...
     CANError = true ;                           // Flag CAN silence error. Will be cleared at first frame received
+	Serial2.println("Flag CAN silence error");
   }
 
   // Send messages containing variables to publish. Sent less frequently than the processing of incoming frames (here, every 200 ms)
@@ -583,7 +642,10 @@ void loop() {
   if ( CANsendDivider < 0 )
   {
     CANsendDivider = CAN_SEND_RATE / CAN_DELAY ;
-    SendMessages() ;       
+	Serial2.println("Starting SendMessages()...");
+    SendMessages() ;  
+	Serial2.println("Finished SendMessages()");
+	
   }
   delay(CAN_DELAY) ;    // The delay must not be greater than the time to overflow the incoming fifo (here about 15 ms)
 }
