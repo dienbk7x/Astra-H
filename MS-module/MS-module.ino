@@ -242,16 +242,16 @@ void SendCANmessage( // general function to send any message
 
 	digitalWrite(PC13, LOW);    // turn the onboard LED on
 	// print a copy of sent message
-	Serial1.println("Sending msg:");
-	Serial1.print(id, HEX);
-	Serial1.print(" #");
+	Serial2.println("Sending msg:");
+	Serial2.print(id, HEX);
+	Serial2.print(" #");
 	
 	for (int i=0; i<dlength;++i)
 	{
-		Serial1.print(" ");
-		Serial1.print(msg.Data[i], HEX);
+		Serial2.print(" ");
+		Serial2.print(msg.Data[i], HEX);
 	}
-	Serial1.println();
+	Serial2.println();
 
 	CANsend(&msg) ;      // Send this frame            
 	digitalWrite(PC13, HIGH);   // turn the LED off 
@@ -263,6 +263,14 @@ void SendMessages()
 {
 /// list here everything to be sent
 Serial2.println("Sending all messages");
+LS_CAN();
+SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00); 
+if (flag_climChanged)
+	{
+	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,climate_direction,climate_temperature,climate_fanspeed); 
+	}
+MS_CAN();
+
 }	
 	
 
@@ -525,8 +533,8 @@ void checkUSBmode()
 	Serial2.println("pin B12 set to input mode");
 	pinMode(28, INPUT); // B12 = 16+12 = 28
 	flag_usbMode = digitalRead(28); // if B12 is HIGH, then switch to programming mode
-	Serial1.print("pin B12 is ");
-    Serial1.println(flag_usbMode);
+	Serial2.print("pin B12 is ");
+    Serial2.println(flag_usbMode);
 
 	if (flag_usbMode)
 	{
@@ -620,10 +628,11 @@ void setup() {
   }
 
 void loop() {
-Serial1.println("Start of loop()");
+Serial2.println("Start of loop()");
 
   // Process incoming messages periodically (should be often enough to avoid overflowing the fifo)
   Serial2.println("Starting ProcessMessages()...");
+  MS_CAN();
   ProcessMessages() ;          // Process all incoming messages, update local variables accordingly
   Serial2.println("Finished ProcessMessages()");
 
@@ -643,7 +652,7 @@ Serial1.println("Start of loop()");
   {
     CANsendDivider = CAN_SEND_RATE / CAN_DELAY ;
 	Serial2.println("Starting SendMessages()...");
-    SendMessages() ;  
+    SendMessages() ;  ////////////////////////////////////////// Check here
 	Serial2.println("Finished SendMessages()");
 	
   }
