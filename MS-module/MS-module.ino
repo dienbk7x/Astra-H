@@ -279,10 +279,11 @@ void ProcessMessages(void) // all main code is here!
 		digitalWrite(PC13, PC13OFF);
 	#endif
 	///// processing the incoming message /////
-
+	Serial2.println(r_msg->ID, HEX);
     switch ( r_msg->ID )
     {	//	start switch ( r_msg->ID )
 		case 0x206: //MS_WHEEL_BUTTONS_ID: // steering wheel buttons
+			Serial2.println("0x206 MS_WHEEL_BUTTONS_ID detected");
 			switch (r_msg->Data[1])
 			// setting the flag_blocked flag. Button *))
 			{
@@ -305,6 +306,7 @@ void ProcessMessages(void) // all main code is here!
 		break;
 	/**/		
 		case MS_CLIMA_CONTROLS_ID: //climate controls
+			Serial2.println("MS_CLIMA_CONTROLS_ID detected");
 			switch (r_msg->Data[1])
 			{
 				case 0x17: //MS_BTN_CLIMA_CENTER_WHEEL:
