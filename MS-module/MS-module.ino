@@ -1,4 +1,4 @@
-#define VER_0 2
+#define VER_0 3
 
 #include <HardwareCAN.h>
 /*
@@ -140,7 +140,7 @@ CanMsg msg ;
 ///
 void CAN_a_33_Setup(void)
 {	// start CAN_a_33_Setup
-  Serial2.println("canBus Initialization: LS CAN");
+  Serial1.println("canBus Initialization: LS CAN");
   CAN_STATUS Stat ;
   afio_init(); // this will restart subsystem and make it work!
   canBus.map(CAN_GPIO_PA11_PA12);  
@@ -155,7 +155,7 @@ void CAN_a_33_Setup(void)
 						}
 						else 
 						{
-						Serial2.println("LS CAN = OK");
+						Serial1.println("LS CAN = OK");
 						}
  }
 	// end CAN_a_33_Setup
@@ -163,7 +163,7 @@ void LS_CAN(void) { CAN_a_33_Setup(); }
 	
 void CAN_b_95_Setup(void)
 {	// start CAN_b_95_Setup
-  Serial2.println("canBus Initialization: MS CAN");
+  Serial1.println("canBus Initialization: MS CAN");
   CAN_STATUS Stat ;
   canBus.map(CAN_GPIO_PB8_PB9);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);
@@ -177,7 +177,7 @@ void CAN_b_95_Setup(void)
 						}
 						else 
 						{
-						Serial2.println("MS CAN = OK");
+						Serial1.println("MS CAN = OK");
 						}
 }
 	// end CAN_b_95_Setup
@@ -250,16 +250,16 @@ void SendCANmessage( // general function to send any message
 
 	digitalWrite(PC13, LOW);    // turn the onboard LED on
 	// print a copy of sent message
-	Serial2.println("Sending msg:");
-	Serial2.print(id, HEX);
-	Serial2.print(" #");
+	Serial1.println("Sending msg:");
+	Serial1.print(id, HEX);
+	Serial1.print(" #");
 	
 	for (int i=0; i<dlength;++i)
 	{
-		Serial2.print(" ");
-		Serial2.print(msg.Data[i], HEX);
+		Serial1.print(" ");
+		Serial1.print(msg.Data[i], HEX);
 	}
-	Serial2.println();
+	Serial1.println();
 
 	CANsend(&msg) ;      // Send this frame            
 	digitalWrite(PC13, HIGH);   // turn the LED off 
@@ -308,18 +308,25 @@ void climaTriggerAC()
 void SendMessages()
 {
 /// list here everything to be sent
-Serial2.println("Sending all messages");
+Serial1.println("Sending all messages");
+/* temporary blocked
 LS_CAN();
 //SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00); 
 if (flag_climChanged)
 	{
 	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,climate_direction,climate_temperature,climate_fanspeed); 
 	Serial2.println("Sending to ODO");
+	}
+if (flag_blocked)
+	{
+	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00); 
+	Serial2.println("Sending to ODO");
+	}
 #ifdef DEBUGMODE
   delay(350);
 #endif
-	}
 MS_CAN();
+*/
 
 }	
 	
@@ -329,18 +336,18 @@ MS_CAN();
 // Note : frames are not fully checked for correctness: DLC value is not checked, neither are the IDE and RTR fields. However, the data is guaranteed to be corrrect.
 void ProcessMessages(void) // all main code is here!
 {	// start ProcessMessages
-Serial2.println("Start processing incoming messages");
-Serial2.println("Waiting for CAN message...");
+Serial1.println("Start processing incoming messages");
+Serial1.println("Waiting for CAN message...");
 
   int i ;
   
   CanMsg *r_msg;
 
   // Loop for every message in the fifo
-	int cntr=100; // counter to avoid infinite loop
-  while ( ( (r_msg = canBus.recv()) != NULL ) and (cntr>0) )
+//	int cntr=100; // counter to avoid infinite loop
+  while ( ( (r_msg = canBus.recv()) != NULL ) ) // and (cntr>0) )
   {	//	start while ((r_msg = canBus.recv()) != NULL)
-    cntr--;
+    //cntr--;
 	CANquietTime = 0 ;              // Reset at each received frame
     CANError = false ;              // Clear CAN silence error
 	//delay(50);
@@ -372,32 +379,36 @@ Serial2.println("Waiting for CAN message...");
 
     switch ( r_msg->ID )
     {	//	start switch ( r_msg->ID )
-		case 0x206: //MS_WHEEL_BUTTONS_ID: // steering wheel buttons
+		case MS_WHEEL_BUTTONS_ID: //0x206: // steering wheel buttons 
 			Serial2.println("steering wheel button detected");
+			Serial2.println(r_msg->Data[1], HEX); // show the number of the detected button
 			switch (r_msg->Data[1])
 			// setting the flag_blocked flag. Button *))
 			{
-				case 0x82: //MS_BTN_AUX: 	// "aux/hands free" button
+				case MS_BTN_AUX: 	//0x82: // "aux/hands free" button
 					if (r_msg->Data[0]==BTN_PRESSED)
 					{
 						flag_blocked = true;
 						Serial2.println("Blocking button is pressed");
+						digitalWrite(LED_red, HIGH);
 					}
 					else 
 					{
 						flag_blocked = false;
 						Serial2.println("Blocking button is released");
+						digitalWrite(LED_red, LOW);
 					}
 				break;
 				
 				//default:
 				//break;
 			}
-		Serial2.println("end of steering wheel button prosessing");
+		Serial1.println("end of steering wheel button prosessing");
 		break;
 	/**/		
-		case MS_CLIMA_CONTROLS_ID: //climate controls
+		case MS_CLIMA_CONTROLS_ID: //climate controls = 0x208
 			Serial2.println("clima controls detected");
+			Serial2.println(r_msg->Data[1], HEX); // show the number of the detected button
 			switch (r_msg->Data[1])
 			{
 				case 0x17: //MS_BTN_CLIMA_CENTER_WHEEL:
@@ -405,11 +416,10 @@ Serial2.println("Waiting for CAN message...");
 					Serial2.println("MS_BTN_CLIMA_CENTER_WHEEL detected");
 					if ( // check if the climate control menu is pressed together with blocking button
 						(flag_blocked == false) and
-						(r_msg->Data[0]==BTN_PRESSED) and 
-						(r_msg->Data[2]==0x00) // do I need it?
+						(r_msg->Data[0]==BTN_PRESSED)
 					   )
 					{   
-            climaTriggerAC();
+					climaTriggerAC();
 					}
 						// end   AC triggering script
 					 
@@ -442,6 +452,8 @@ Serial2.println("Waiting for CAN message...");
 							{
 								Serial2.println("readest new direction");	
 								climate_direction = r_msg->Data[2];
+								Serial2.print("climate_direction: ");	
+								Serial2.println(climate_direction);	
 								flag_climChanged = true;
 							}
 							// end if
@@ -515,7 +527,7 @@ Serial2.println("Waiting for CAN message...");
 		break ;*/
     }
 		//	end   switch ( r_msg->ID )
-	Serial2.println("end of message processing. Clear input buffer...");		
+	Serial1.println("end of message processing. Clear input buffer...");		
     canBus.free();                          // Remove processed message from buffer, whatever the identifier
 #ifdef USE_MULTITASK
     vTaskDelay( 1 ) ;                       // Infinite loops are not multitasking-friendly
@@ -641,6 +653,7 @@ void setup() {
 	delay(50);
     Serial2.println(" .. finished");
 #ifdef DEBUGMODE
+Serial2.println("Test of clima script");
 climaTriggerAC();
 #endif
 
@@ -672,13 +685,13 @@ climaTriggerAC();
   }
 
 void loop() {
-Serial2.println("Start of loop()");
+Serial1.println("Start of loop()");
 
   // Process incoming messages periodically (should be often enough to avoid overflowing the fifo)
-  Serial2.println("Starting ProcessMessages()...");
+  Serial1.println("Starting ProcessMessages()...");
   MS_CAN();
   ProcessMessages() ;          // Process all incoming messages, update local variables accordingly
-  Serial2.println("Finished ProcessMessages()");
+  Serial1.println("Finished ProcessMessages()");
 
   // This is an example of timeout management. Here it is global to all received frames; 
   // it could be on a frame by frame basis, with as many control variables as the number of frames.
@@ -687,7 +700,7 @@ Serial2.println("Start of loop()");
   {
     CANquietTime = CAN_TIMEOUT + 1 ;            // To prevent overflowing this variable if silence prolongs...
     CANError = true ;                           // Flag CAN silence error. Will be cleared at first frame received
-	Serial2.println("Flag CAN silence error");
+	Serial1.println("Flag CAN silence error");
   }
 
   // Send messages containing variables to publish. Sent less frequently than the processing of incoming frames (here, every 200 ms)
@@ -695,12 +708,12 @@ Serial2.println("Start of loop()");
   if ( CANsendDivider < 0 )
   {
     CANsendDivider = CAN_SEND_RATE / CAN_DELAY ;
-	Serial2.println("Starting SendMessages()...");
+	Serial1.println("Starting SendMessages()...");
     SendMessages() ;  ////////////////////////////////////////// Check here
-	Serial2.println("Finished SendMessages()");
+	Serial1.println("Finished SendMessages()");
 	
   }
-  delay(CAN_DELAY) ;    // The delay must not be greater than the time to overflow the incoming fifo (here about 15 ms)
+//  delay(CAN_DELAY) ;    // The delay must not be greater than the time to overflow the incoming fifo (here about 15 ms)
 }
 
 
