@@ -1,4 +1,4 @@
-#define STRING_VER 0.1
+#define VER_0 2
 
 #include <HardwareCAN.h>
 /*
@@ -78,8 +78,8 @@
 
 // Limit time to flag a CAN error
 #define CAN_TIMEOUT 100           
-#define CAN_DELAY 0 // 10        // ms between two processings of incoming messages
-#define CAN_SEND_RATE 10 // 200   // ms between two successive sendings
+#define CAN_DELAY 1 // 10        // ms between two processings of incoming messages. Чем больше, тем больше будет пропусков пакетов!
+#define CAN_SEND_RATE 100 // 200   // ms between two successive sendings. 100 мс нормально для средней шины.
 
 // Message structures. Each message has its own identifier. As many such variables should be defined 
 // as the number of different CAN frames the application has to send. 
@@ -100,12 +100,20 @@ bool CANError ;             // Indicates that incoming CAN traffic is missing
 int CANsendDivider ;        // Used to send frames once every so many times loop() is called
 
 ///// Definitions and global vars /////
-// #define DEBUGMODE
+#define DEBUGMODE
 #define T_DELAY 0 //10
 
 #define PC13ON 0
 #define PC13OFF 1
 #define DELAY 250
+/// add some diodes 
+#define LED_blue PB13
+#define LED_green PB14
+#define LED_yellow PB15
+#define LED_red PA8
+
+
+
 /* global variables */
 /// flags:
 volatile bool flag_blocked;
@@ -259,15 +267,57 @@ void SendCANmessage( // general function to send any message
 }
 	// end SendCANmessage
 	
+void climaTriggerAC()
+{
+// Start AC triggering script
+            Serial2.println("Blocking is NOT pressed");
+            Serial2.println("Running AC triggering script");
+            digitalWrite(PC13, PC13ON);
+            delay(DELAY);
+            // turn right 1 click
+            Serial2.println("turn right 1 click");
+            SendCANmessage(0x208, 6, 0x08, 0x16, 0x01); 
+            delay(DELAY);
+            // press
+            Serial2.println("press");
+            SendCANmessage(0x208, 6, 0x01, 0x17, 0x00);
+            delay(30);
+            SendCANmessage(0x208, 6, 0x00, 0x17, 0x00);
+            delay(DELAY);
+            
+            // turn left 1 click
+            Serial2.println("turn left 1 click");
+            SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
+            delay(DELAY);
+            // turn left 1 click
+            Serial2.println("turn left 1 click");
+            SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
+            delay(DELAY);
+            // press
+            Serial2.println("press");
+            SendCANmessage(0x208, 6, 0x01, 0x17, 0x00);
+            delay(30);
+            SendCANmessage(0x208, 6, 0x00, 0x17, 0x00);
+            delay(DELAY);
+            
+            
+            Serial2.println("Done.");
+            digitalWrite(PC13, PC13OFF);
+}
+
 void SendMessages()
 {
 /// list here everything to be sent
 Serial2.println("Sending all messages");
 LS_CAN();
-SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00); 
+//SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,0x00,0x00,0x00); 
 if (flag_climChanged)
 	{
 	SendCANmessage(LS_ODOMETER_ECN_ID,8,0x81,climate_direction,climate_temperature,climate_fanspeed); 
+	Serial2.println("Sending to ODO");
+#ifdef DEBUGMODE
+  delay(350);
+#endif
 	}
 MS_CAN();
 
@@ -295,27 +345,27 @@ Serial2.println("Waiting for CAN message...");
     CANError = false ;              // Clear CAN silence error
 	//delay(50);
 	#ifdef DEBUGMODE	
-		Serial2.println("reading and printing the message if DEBUGMODE is on");
+		Serial1.println("reading and printing the message if DEBUGMODE is on");
 		// make separate function printmsg();
 		// printing data to serial. may be switched off for faster work
 		digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
-		Serial2.print(r_msg->ID, HEX);
-		Serial2.print(" # ");
-		Serial2.print(r_msg->Data[0], HEX);
-		Serial2.print(" ");
-		Serial2.print(r_msg->Data[1], HEX);
-		Serial2.print(" ");
-		Serial2.print(r_msg->Data[2], HEX);
-		Serial2.print(" ");
-		Serial2.print(r_msg->Data[3], HEX);
-		Serial2.print(" ");
-		Serial2.print(r_msg->Data[4], HEX);
-		Serial2.print(" ");
-		Serial2.print(r_msg->Data[5], HEX);
-		Serial2.print(" ");
-		Serial2.print(r_msg->Data[6], HEX);
-		Serial2.print(" ");
-		Serial2.println(r_msg->Data[7], HEX);
+		Serial1.print(r_msg->ID, HEX);
+		Serial1.print(" # ");
+		Serial1.print(r_msg->Data[0], HEX);
+		Serial1.print(" ");
+		Serial1.print(r_msg->Data[1], HEX);
+		Serial1.print(" ");
+		Serial1.print(r_msg->Data[2], HEX);
+		Serial1.print(" ");
+		Serial1.print(r_msg->Data[3], HEX);
+		Serial1.print(" ");
+		Serial1.print(r_msg->Data[4], HEX);
+		Serial1.print(" ");
+		Serial1.print(r_msg->Data[5], HEX);
+		Serial1.print(" ");
+		Serial1.print(r_msg->Data[6], HEX);
+		Serial1.print(" ");
+		Serial1.println(r_msg->Data[7], HEX);
 		digitalWrite(PC13, PC13OFF);
 	#endif
 	///// processing the incoming message /////
@@ -358,40 +408,8 @@ Serial2.println("Waiting for CAN message...");
 						(r_msg->Data[0]==BTN_PRESSED) and 
 						(r_msg->Data[2]==0x00) // do I need it?
 					   )
-					{   // Start AC triggering script
-						Serial2.println("Blocking is NOT pressed");
-						Serial2.println("Running AC triggering script");
-						digitalWrite(PC13, PC13ON);
-						delay(DELAY);
-						// turn right 1 click
-						Serial2.println("turn right 1 click");
-						SendCANmessage(0x208, 6, 0x08, 0x16, 0x01); 
-						delay(DELAY);
-						// press
-						Serial2.println("press");
-						SendCANmessage(0x208, 6, 0x01, 0x17, 0x00);
-						delay(30);
-						SendCANmessage(0x208, 6, 0x00, 0x17, 0x00);
-						delay(DELAY);
-						
-						// turn left 1 click
-						Serial2.println("turn left 1 click");
-						SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
-						delay(DELAY);
-						// turn left 1 click
-						Serial2.println("turn left 1 click");
-						SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
-						delay(DELAY);
-						// press
-						Serial2.println("press");
-						SendCANmessage(0x208, 6, 0x01, 0x17, 0x00);
-						delay(30);
-						SendCANmessage(0x208, 6, 0x00, 0x17, 0x00);
-						delay(DELAY);
-						
-						
-						Serial2.println("Done.");
-						digitalWrite(PC13, PC13OFF);
+					{   
+            climaTriggerAC();
 					}
 						// end   AC triggering script
 					 
@@ -570,9 +588,32 @@ void setup() {
   // put your setup code here, to run once:
   CANmsgSetup() ;        // prepare the message structures.
 
-  	Serial2.begin(115200); // USART2 on A2-A3 pins
+#ifdef DEBUGMODE 
+  	Serial1.begin(115200); // USART1 on A9-A10 pins - dump all messages there
+	pinMode(LED_blue, OUTPUT);
+	pinMode(LED_green, OUTPUT);
+	pinMode(LED_yellow, OUTPUT);
+	pinMode(LED_red, OUTPUT);
+	digitalWrite(LED_blue,HIGH);
+	delay(100);
+	digitalWrite(LED_green,HIGH);
+	delay(100);
+	digitalWrite(LED_yellow,HIGH);
+	delay(100);
+	digitalWrite(LED_red,HIGH);
+	delay(100);
+	digitalWrite(LED_blue,LOW);
+	delay(100);
+	digitalWrite(LED_green,LOW);
+	delay(100);
+	digitalWrite(LED_yellow,LOW);
+	delay(100);
+	digitalWrite(LED_red,LOW);
+#endif
+	Serial2.begin(115200); // USART2 on A2-A3 pins
 	Serial2.println("Hello World!");
-	Serial2.println("Starting \"AstraH MS Module\" v STRING_VER program");
+	Serial2.print("Starting \"AstraH MS Module\" v0/");
+	Serial2.println(VER_0);
 	pinMode(PC13, OUTPUT); // LED
 	digitalWrite(PC13, PC13ON);
 	
@@ -584,8 +625,8 @@ void setup() {
 	
 	MS_CAN();
 	
-	Serial2.println("Sending something to CAN");
-	SendCANmessage(0x208, 0); // dummy
+	//Serial2.println("Sending something to CAN");
+	//SendCANmessage(0x208, 0); // dummy
 	Serial2.println("Sending wakeupscreen to CAN");
 	SendCANmessage(0x697, 8, 0x47, 0x00, 0x60, 0x00, 0x02, 0x00, 0x00, 0x80); // wake up screen
 	Serial2.println("Press SETTINGS two times...");
@@ -599,6 +640,9 @@ void setup() {
 	SendCANmessage(MS_MEDIA_BUTTONS_ID,3,BTN_RELEASED,MS_BTN_SETTINGS,0x00); // release settings      
 	delay(50);
     Serial2.println(" .. finished");
+#ifdef DEBUGMODE
+climaTriggerAC();
+#endif
 
 	  // small self-presentation in LS CAN
 	LS_CAN();
