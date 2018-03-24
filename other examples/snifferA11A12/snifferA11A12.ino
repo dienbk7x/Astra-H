@@ -11,6 +11,26 @@ CanMsg msg ;
 CanMsg *r_msg;
 CAN_STATUS Stat ;
 
+void CANSetup(void) // Should be moved to the library and choose speed here?!
+{
+  //CAN_STATUS Stat ; // moved to global
+
+  // Initialize CAN module
+  canBus.map(CAN_GPIO_PA11_PA12);       // This setting is already wired in the Olimexino-STM32 board
+  Stat = canBus.begin(CAN_SPEED_33, CAN_MODE_NORMAL);    
+
+  canBus.filter(0, 0, 0);
+  canBus.set_irq_mode();              // Use irq mode (recommended), so the handling of incoming messages
+                                      // will be performed at ease in a task or in the loop. The software fifo is 16 cells long, 
+                                      // allowing at least 15 ms before processing the fifo is needed at 125 kbps
+  Stat = canBus.status();
+  if (Stat != CAN_OK)  
+     {/* Your own error processing here */ ;   // Initialization failed
+     Serial.print("Initialization failed");
+     Serial1.print("Initialization failed");
+     }
+}
+
 void CANSetup(CAN_GPIO_MAP remap, CAN_SPEED speed)
 {
 
@@ -25,6 +45,7 @@ void CANSetup(CAN_GPIO_MAP remap, CAN_SPEED speed)
   Stat = canBus.status();
   if (Stat != CAN_OK)  
      {/* Your own error processing here */ ;   // Initialization failed
+     Serial.print("Initialization failed");
      Serial1.print("Initialization failed");
      }
 
@@ -64,7 +85,25 @@ void SendCANmessage(long id=0x001, byte dlength=8, byte d0=0x00, byte d1=0x00, b
   msg.Data[5] = d5 ;
   msg.Data[6] = d6 ;
   msg.Data[7] = d7 ;
+
+//  digitalWrite(PC13, LOW);    // turn the onboard LED on
   CANsend(&msg) ;      // Send this frame
+/*		// print a copy of sent message
+		Serial1.println("Sending msg:");
+		Serial1.print(id, HEX);
+		Serial1.print(" #");
+		
+		for (int i=0; i<dlength;++i)
+		{
+			Serial1.print(" ");
+			Serial1.print(msg.Data[i], HEX);
+		}
+		Serial1.println();
+  
+//  delay(18);              
+//  digitalWrite(PC13, HIGH);   // turn the LED off 
+//  delay(10);  
+*/
 }
 
 #define PC13ON 0
@@ -85,9 +124,9 @@ void setup()
 	for (bool flag=0;flag==0;)
 	{	
 		Serial1.print("trying MS CAN...");
-		CANSetup(CAN_GPIO_PB8_PB9,CAN_SPEED_95);
-		canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free(); // make sure receive buffer is empty
-		delay(200);	// wait for receiving something	
+		CANSetup(CAN_GPIO_PA11_PA12,CAN_SPEED_95);
+		canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();
+		delay(200);		
 		if ( ( r_msg = canBus.recv() ) != NULL )
 		{
 			Serial1.println("   OK!");
@@ -98,9 +137,9 @@ void setup()
 			Serial1.println("   FAILED!");
 			delay(500);
 			Serial1.print("trying LS(SW) CAN...");
-			CANSetup(CAN_GPIO_PB8_PB9,CAN_SPEED_33);
-			canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free(); // make sure receive buffer is empty
-			delay(200);		// wait for receiving something
+			CANSetup(CAN_GPIO_PA11_PA12,CAN_SPEED_33);
+			canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();canBus.free();
+			delay(200);		
 
 			if ( ( r_msg = canBus.recv() ) != NULL ) 
 			{

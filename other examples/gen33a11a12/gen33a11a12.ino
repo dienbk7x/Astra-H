@@ -15,7 +15,7 @@ void CANSetup(void) // Should be moved to the library and choose speed here?!
   CAN_STATUS Stat ;
 
   // Initialize CAN module
-  canBus.map(CAN_GPIO_PB8_PB9);       // This setting is already wired in the Olimexino-STM32 board
+  canBus.map(CAN_GPIO_PA11_PA12);       // This setting is already wired in the Olimexino-STM32 board
   Stat = canBus.begin(CAN_SPEED_33, CAN_MODE_NORMAL);    
 
   canBus.filter(0, 0, 0);
@@ -296,8 +296,9 @@ void setup()
 	digitalWrite(PC13, PC13OFF);
 	CANSetup();
 
-  pinMode(28, INPUT); // B12 = 16+12 = 28
-  flag_emulate = digitalRead(28); // if B12 is HIGH, then switch to programming mode
+  pinMode(PB12, INPUT); // B12 = 16+12 = 28
+  digitalWrite(PB12,LOW);
+  flag_emulate = digitalRead(PB12); // if B12 is HIGH, then switch to programming mode
   Serial1.print("pin B12 is ");
   Serial1.println(flag_emulate);
 }
