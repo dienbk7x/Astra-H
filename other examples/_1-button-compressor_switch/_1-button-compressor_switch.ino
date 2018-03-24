@@ -23,7 +23,6 @@ void CANSetup(void)
      {// Initialization failed
      Serial2.print("Initialization failed!");
      while(1);
-     
      }
 }
 
@@ -79,7 +78,6 @@ void setup()
 	SendCANmessage(0x100, 0); // wake up bus?
 	SendCANmessage(0x697, 8, 0x47, 0x00, 0x60, 0x00, 0x02, 0x00, 0x00, 0x80); // wake up screen
   digitalWrite(PC13, PC13OFF);
-}
 
 void AC_trigger()
 {
@@ -118,7 +116,6 @@ void loop()
 	{
 		///// processing the incoming message
     if (r_msg->ID==0x208) //climate controls
-		{
 				// check if the climate control menu is pressed
 				if ( 
 					(r_msg->Data[0]==0x01) and 
