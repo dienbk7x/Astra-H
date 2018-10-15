@@ -5,7 +5,9 @@ void CANSetup(void)
   canBus.map(CAN_GPIO_PB8_PB9);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);    
 
-  canBus.filter(0, 0, 0);
+//  canBus.filter(0, 0, 0);
+  canBus.filter(0, 0x206<<21, 0xFFFFFFFF) ;     // filter 0 only allows standard identifier 0x206 
+  canBus.filter(1, 0x208<<21, 0xFFFFFFFF) ;     // filter 1 only allows standard identifier 0x208
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
   if (Stat != CAN_OK)  
