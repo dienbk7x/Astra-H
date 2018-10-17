@@ -22,7 +22,7 @@ void setup()
 
 	pinMode(PC13, OUTPUT); // LED
 	digitalWrite(PC13, PC13ON);
-	
+
 	digitalWrite(PC13, PC13OFF);
 	Serial2.println("Initialize the CAN module ...");
 	CANSetup() ;        // Initialize the CAN module and prepare the message structures.
@@ -40,8 +40,8 @@ void loop()
 		if (r_msg->ID==0x206) // steering wheel buttons
 		{
 
-      // setting the flag_blocked flag [01 нажата кнопка] [82 аукс на руле] []
-			if (r_msg->Data[1]==0x82) 
+      // setting the flag_blocked flag [01 нажата кнопка] [81 пресет/верхняя на руле] []
+			if (r_msg->Data[1]==0x81) 
 			{
 				if (r_msg->Data[0]==0x01)	
 				{
