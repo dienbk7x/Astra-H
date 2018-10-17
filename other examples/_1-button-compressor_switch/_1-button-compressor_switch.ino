@@ -10,7 +10,7 @@ CanMsg *r_msg;
 
 #define PC13ON 0
 #define PC13OFF 1
-#define DELAY 180
+#define DELAY 200
 /* global variables */
 volatile bool flag_blocked;
 
@@ -18,7 +18,7 @@ void setup()
 {
 	Serial2.begin(115200); // output to A2 pin
 	Serial2.println("Hello World!");
-	Serial2.println("Starting \"1-button-compressor switch\" v11.1 2018-10-15");
+	Serial2.println("Starting \"1-button-compressor switch\" v11.2 2018-10-17");
 
 	pinMode(PC13, OUTPUT); // LED
 	digitalWrite(PC13, PC13ON);
@@ -40,8 +40,8 @@ void loop()
 		if (r_msg->ID==0x206) // steering wheel buttons
 		{
 
-			// setting the flag_blocked flag [08] [83 левое колесико] [01 вниз]
-			if (r_msg->Data[1]==0x83) 
+      // setting the flag_blocked flag [01 нажата кнопка] [82 аукс на руле] []
+			if (r_msg->Data[1]==0x82) 
 			{
 				if (r_msg->Data[0]==0x01)	
 				{

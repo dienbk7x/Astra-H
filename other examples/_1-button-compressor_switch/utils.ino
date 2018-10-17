@@ -56,14 +56,22 @@ void AC_trigger()
   // press
   Serial2.println("press");
   SendCANmessage(0x208, 6, 0x01, 0x17, 0x00);
-  delay(30);
+  delay(70);
   SendCANmessage(0x208, 6, 0x00, 0x17, 0x00);
   delay(DELAY);
 
   // turn left 1 click
   Serial2.println("turn left 1 click");
   SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
+  delay(30);
+  // turn left 1 click
+  Serial2.println("turn left 1 click");
+  SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
   delay(DELAY);
+  // turn left 1 click
+  Serial2.println("turn left 1 click");
+  SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
+  delay(30);
   // turn left 1 click
   Serial2.println("turn left 1 click");
   SendCANmessage(0x208, 6, 0x08, 0x16, 0xff); 
@@ -71,7 +79,7 @@ void AC_trigger()
   // press
   Serial2.println("press");
   SendCANmessage(0x208, 6, 0x01, 0x17, 0x00);
-  delay(30);
+  delay(70);
   SendCANmessage(0x208, 6, 0x00, 0x17, 0x00);
   delay(DELAY);
 }
