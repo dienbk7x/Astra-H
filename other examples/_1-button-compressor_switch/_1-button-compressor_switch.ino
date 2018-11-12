@@ -4,6 +4,9 @@
 */
 // Choose output serial port
 #define SERIAL Serial2
+// Choose CAN pins
+#define CAN_GPIO_PINS CAN_GPIO_PA11_PA12
+//#define CAN_GPIO_PINS CAN_GPIO_PB8_PB9
 // Uncomment to enable 'debug()' messages output
 #define DEBUG
 // Uncomment to enable 'log()' messages output

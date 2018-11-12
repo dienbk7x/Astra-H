@@ -16,7 +16,8 @@ void CANSetup(void)
 {
   CAN_STATUS Stat ;
   // Initialize CAN module
-  canBus.map(CAN_GPIO_PA11_PA12);
+  canBus.map(CAN_GPIO_PINS);
+//  canBus.map(CAN_GPIO_PA11_PA12);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);
 
   //  canBus.filter(0, 0, 0);
