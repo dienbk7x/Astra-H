@@ -5,8 +5,8 @@
 // Choose output serial port
 #define SERIAL Serial2
 // Choose CAN pins
-#define CAN_GPIO_PINS CAN_GPIO_PA11_PA12
-//#define CAN_GPIO_PINS CAN_GPIO_PB8_PB9
+#define CAN_GPIO_PINS_MS CAN_GPIO_PA11_PA12
+#define CAN_GPIO_PINS_LS CAN_GPIO_PB8_PB9
 // Uncomment to enable 'debug()' messages output
 #define DEBUG
 // Uncomment to enable 'log()' messages output
@@ -24,9 +24,9 @@ CanMsg *r_msg;
 
 void setup()
 {
-  Serial2.begin(115200); // output to A2 pin
-  Serial2.println("Hello World!");
-  Serial2.println("Starting \"1-button-compressor switch\" v11.4 2018-11-06");
+  SERIAL.begin(115200); // output to A2 pin
+  SERIAL.println("Hello World!");
+  SERIAL.println("Starting \"1-button-compressor switch plus\" v20 2018-11-15");
   debug("checking debug level");
   log("checking log level");
 
@@ -34,14 +34,24 @@ void setup()
   pinMode(PC13, OUTPUT); // LED
   digitalWrite(PC13, PC13ON);
   delay(50);// to see the LED
-  Serial2.println("Initialize the CAN module ...");
-  CANSetup() ;        // Initialize the CAN module and prepare the message structures.
-  Serial2.println("Initialization OK");
+  log("Initialize the CAN module ...");
+  
+  msCANSetup();        // Initialize the CAN module
+  log("Initialization MS CAN ON");
   flag_blocked = false;
   log("flag_blocked is set to " + flag_blocked);
   wakeUpBus();
-  wakeUpScreen();
-  Serial2.println("end set up");
+  wakeUpScreen(); // only MS
+
+
+  lsCANSetup();        // Initialize the CAN module
+  log("Initialization LS CAN ON");
+  wakeUpBus();
+  lsBeep();
+  playWithEcn();
+
+  msCANSetup();
+  log("end set up");
   digitalWrite(PC13, PC13OFF);
 }
 
@@ -61,7 +71,7 @@ void loop()
         {
           flag_blocked = true;
           digitalWrite(PC13, PC13ON);
-          Serial2.println("Blocking button is pressed");
+          log("Blocking button is pressed");
         }
         else
         {
@@ -88,10 +98,10 @@ void loop()
           (r_msg->Data[2] == 0x00) //?
         )
         { // AC triggering script
-          Serial2.println("blocking is NOT pressed");
-          Serial2.println("Running AC triggering script");
+          log("blocking is NOT pressed");
+          log("Running AC triggering script");
           AC_trigger();
-          Serial2.println("Done.");
+          log("Done.");
           digitalWrite(PC13, PC13OFF);
         }
         //end AC triggering script
