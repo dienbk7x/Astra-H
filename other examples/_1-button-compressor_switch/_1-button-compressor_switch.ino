@@ -41,8 +41,9 @@ void setup()
   flag_blocked = false;
   log("flag_blocked is set to " + flag_blocked);
   wakeUpBus();
+  delay(100);
   wakeUpScreen(); // only MS
-
+  delay(100);
 
   lsCANSetup();        // Initialize the CAN module
   log("Initialization LS CAN ON");

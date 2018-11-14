@@ -20,9 +20,9 @@ void msCANSetup(void)
   canBus.map(CAN_GPIO_PINS_MS);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);
 
-  canBus.filter(0, 0, 0);
-  //  canBus.filter(0, 0x206 << 21, 0xFFFFFFFF) ;   // filter 0 only allows standard identifier 0x206
-  //  canBus.filter(1, 0x208 << 21, 0xFFFFFFFF) ;   // filter 1 only allows standard identifier 0x208
+//  canBus.filter(0, 0, 0);
+    canBus.filter(0, 0x206 << 21, 0xFFFFFFFF) ;   // filter 0 only allows standard identifier 0x206
+    canBus.filter(1, 0x208 << 21, 0xFFFFFFFF) ;   // filter 1 only allows standard identifier 0x208
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
   if (Stat != CAN_OK)
@@ -126,11 +126,13 @@ void AC_trigger()
 void wakeUpBus() {
   log("send wake up");
   SendCANmessage(0x100, 0); // wake up bus?
+  canBus.free();
 }
 
 void wakeUpScreen() {
   SendCANmessage(0x697, 8, 0x47, 0x00, 0x60, 0x00, 0x02, 0x00, 0x00, 0x80); // wake up screen
   log("send wake screen");
+  canBus.free();
 }
 
 /**
