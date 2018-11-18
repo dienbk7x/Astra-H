@@ -135,6 +135,7 @@ void wakeUpScreen() {
   canBus.free();
 }
 
+// ======== LS CAN ==========
 /**
    шлет цифры на дисплей ошибок
    три двухзначных числа
@@ -168,9 +169,25 @@ void playWithEcn() {
   delay(200);
   debug("000000");
   showEcn(0x00, 0x00, 0x00);
+  delay(200);
   canBus.free();
 }
 
+/**
+ * Тестстрелок - кратковременно до максимума
+ */
+ void panelCheck(){
+  // todo нехватает еще одной стрелки!!!
+ log("==>making panelCheck!");
+    SendCANmessage(0x255, 8, 0x05, 0xAE, 0x06, 0x01, 0x8A,0x00,0x00,0x00);
+    delay(50);
+    SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, 0x7F,0x00,0x00,0x00);
+    delay(50);
+    SendCANmessage(0x255, 8, 0x04, 0xAE, 0x08, 0x01, 0xFF,0x00,0x00,0x00);
+    delay(500);
+    SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, 0x00,0x00,0x00,0x00);
+  log("== end making panelCheck!");
+}
 /**
    издать звуковой сигнал
 */
@@ -182,6 +199,15 @@ void lsBeep(uint8 wait = 0x1e, uint8 count = 0x03, uint8 length = 0x33) {
 
 }
 
+/**
+ * Сигналы с задержкой 0,1 сек.
+ */
+void lsBeep(uint8 count) {
+  lsBeep(0x0A, count, 0x33);
+}
+/**
+ * Стандартный сигнал как при включении полугабарита
+ */
 void lsBeep() {
   lsBeep(0x1e, 0x03, 0x33);
 }

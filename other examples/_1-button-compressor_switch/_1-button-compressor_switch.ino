@@ -2,6 +2,7 @@
 /*
    Uses STM32duino with Phono patch. Must add 33 and 95 CAN speeds
 */
+/////// === Настройки модуля! === ///////
 // Choose output serial port
 #define SERIAL Serial2
 // Choose CAN pins
@@ -48,7 +49,9 @@ void setup()
   lsCANSetup();        // Initialize the CAN module
   log("Initialization LS CAN ON");
   wakeUpBus();
-  lsBeep();
+  lsBeep(2);
+  panelCheck();
+  
   playWithEcn();
 
   msCANSetup();
