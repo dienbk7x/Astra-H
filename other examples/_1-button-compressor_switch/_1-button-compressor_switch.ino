@@ -27,7 +27,7 @@ void setup()
 {
   SERIAL.begin(115200); // output to A2 pin
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting \"1-button-compressor switch plus\" v20 2018-11-15");
+  SERIAL.println("Starting \"1-button-compressor switch plus\" v21 2018-11-22");
   debug("checking debug level");
   log("checking log level");
 
@@ -50,7 +50,7 @@ void setup()
   log("Initialization LS CAN ON");
   wakeUpBus();
   lsBeep(2);
-  panelCheck();
+  lsPanelCheck();
   
   playWithEcn();
 
