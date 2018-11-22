@@ -29,6 +29,7 @@
 /* global variables */
 bool ecnMode; // temporary, must be enum for state-machine
 long ecnMillis = 0; // size?
+short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
 int coolantTemp;
 
 // Flags
@@ -43,7 +44,7 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.01 2018-11-22");
+  SERIAL.println("Starting LS-module v1.02 2018-11-22");
   debug("checking debug level");
   log("checking log level");
 
@@ -80,7 +81,7 @@ void loop()
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
       if (1 == ecnMode) {
-        coolantTemp = r_msg->Data[1] - 40;
+        coolantTemp = r_msg->Data[3] - 40;
       }
     } else if (r_msg->ID == 0x175) {
       debug("Steering wheel buttons");
@@ -112,7 +113,7 @@ void loop()
     debug("coolant");
     SERIAL.println(coolantTemp - 40); // !!!!!!!!!!! bad
 
-    ecnMillis = millis() + 1000;
+    ecnMillis = millis() + ecnWaitTime;
     // process coolant
     uint8 d0 = 0x0C;
     uint8 d1 = 0xEE;
