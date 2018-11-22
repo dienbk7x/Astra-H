@@ -33,7 +33,8 @@ short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
 int coolantTemp;
 
 // Flags
-volatile bool flag_blocked;
+volatile bool flagHandBrake = false;
+volatile bool flag;
 
 // Instanciation of CAN interface
 HardwareCAN canBus(CAN1_BASE);
@@ -47,6 +48,7 @@ void setup()
   SERIAL.println("Starting LS-module v1.02 2018-11-22");
   debug("checking debug level");
   log("checking log level");
+  delay(DELAY);
 
   debug("Setting globals");
   ecnMode = 0;
@@ -97,6 +99,20 @@ void loop()
         lsShowEcn(0x0F, 0xF0, 0xFF); // temp
       }
 
+    } else if (r_msg->ID == 0x370) {
+      debug("handbrake, fog lights, etc...");
+      if ((r_msg->Data[1]) & 0x01) {
+        if (!flagHandBrake) {
+          log("handbrake was DOWN, now UP");
+          flagHandBrake = true;
+        }
+      } else {
+        if (flagHandBrake) {
+          log("handbrake was UP, now DOWN");
+          flagHandBrake = false;
+        }
+      }
+
       //========================
       //    } else if (r_msg->ID == 0x) {
       //if (r_msg->Data[1])
@@ -133,6 +149,17 @@ void loop()
     }
     d2 = ampl / 10 * 16 + ampl % 10; // to hex but show like dec;
     lsShowEcn(d0, d1, d2);
+    if (flagHandBrake) {
+      uint8 tempToSpeed;
+      debug("calculate tempToSpeed:");
+      if (coolantTemp < 40) {
+        tempToSpeed = (200 + ampl);
+      } else {
+        tempToSpeed = (ampl);
+      }
+      SERIAL.print(tempToSpeed);
+        speedometer(tempToSpeed);
+      }
+    }
   }
-}
-// close void loop
+  // close void loop
