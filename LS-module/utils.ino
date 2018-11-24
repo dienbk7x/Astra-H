@@ -9,6 +9,31 @@ void debug(String str) {
   SERIAL.println(str);
 #endif
 }
+/**
+   print out extra message + value
+*/
+void debug(String str, long val) {
+#ifdef DEBUG
+  SERIAL.print(millis());
+  SERIAL.print("\t");
+  SERIAL.print(str);
+  SERIAL.print("\t");
+  SERIAL.println(val);
+#endif
+}
+/**
+   print out extra message + HEX value
+*/
+void debug(String str, long val, int HEX) {
+#ifdef DEBUG
+  SERIAL.print(millis());
+  SERIAL.print("\t");
+  SERIAL.print(str);
+  SERIAL.print("\t");
+  SERIAL.println(val, HEX);
+#endif
+}
+
 
 /*
    print some string data to UART (bluetooth)

@@ -126,8 +126,7 @@ void loop()
   // ======== check flags and execute actions =========
   if ((1 == ecnMode) && (millis() > ecnMillis)) {
     debug("(1 == ecnMode) && (millis() > ecnMillis)");
-    debug("coolant");
-    SERIAL.println(coolantTemp - 40); // !!!!!!!!!!! bad
+    debug("Coolant: ", coolantTemp - 40);
 
     ecnMillis = millis() + ecnWaitTime;
     // process coolant
@@ -151,15 +150,14 @@ void loop()
     lsShowEcn(d0, d1, d2);
     if (flagHandBrake) {
       uint8 tempToSpeed;
-      debug("calculate tempToSpeed:");
       if (coolantTemp < 40) {
         tempToSpeed = (200 + ampl);
       } else {
         tempToSpeed = (ampl);
       }
-      SERIAL.print(tempToSpeed);
-        speedometer(tempToSpeed);
-      }
+      debug("calculate tempToSpeed:", tempToSpeed);
+      speedometer(tempToSpeed);
     }
   }
-  // close void loop
+}
+// close void loop
