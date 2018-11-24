@@ -83,7 +83,7 @@ void loop()
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
       if (1 == ecnMode) {
-        coolantTemp = r_msg->Data[3] - 40;
+        coolantTemp = r_msg->Data[3];
       }
     } else if (r_msg->ID == 0x175) {
       debug("Steering wheel buttons");
