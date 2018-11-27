@@ -29,7 +29,7 @@
 /* global variables */
 bool ecnMode; // temporary, must be enum for state-machine
 long ecnMillis = 0; // size?
-short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
+short ecnWaitTime = 2000; // pause between ecn screen update in mode 1
 int coolantTemp;
 
 // Flags
@@ -45,7 +45,7 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.02 2018-11-22");
+  SERIAL.println("Starting LS-module v1.03 2018-11-27");
   debug("checking debug level");
   log("checking log level");
   delay(DELAY);
@@ -153,7 +153,7 @@ void loop()
       if (coolantTemp < 40) {
         tempToSpeed = (200 + ampl);
       } else {
-        tempToSpeed = (ampl);
+        tempToSpeed = coolantTemp - 40);
       }
       debug("calculate tempToSpeed:", tempToSpeed);
       speedometer(tempToSpeed);
