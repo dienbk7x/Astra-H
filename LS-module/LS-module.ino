@@ -45,8 +45,10 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.03 2018-11-27");
+  SERIAL.println("Starting LS-module v1.04 2018-11-28");
   debug("checking debug level");
+  debug("checking debug with value", 1);
+  debugHex("checking debugHex with value 32", 32);
   log("checking log level");
   delay(DELAY);
 
@@ -153,7 +155,7 @@ void loop()
       if (coolantTemp < 40) {
         tempToSpeed = (200 + ampl);
       } else {
-        tempToSpeed = coolantTemp - 40);
+        tempToSpeed = coolantTemp - 40;
       }
       debug("calculate tempToSpeed:", tempToSpeed);
       speedometer(tempToSpeed);

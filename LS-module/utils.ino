@@ -24,8 +24,8 @@ void debug(String str, long val) {
 /**
    print out extra message + HEX value
 */
-void debug(String str, long val, int HEX) {
-#ifdef DEBUG
+void debugHex(String str, long val) {
+#ifdef DEBUG    
   SERIAL.print(millis());
   SERIAL.print("\t");
   SERIAL.print(str);
