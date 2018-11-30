@@ -27,10 +27,13 @@
 
 /////// === Глобальные переменные === ///////
 /* global variables */
-bool ecnMode; // temporary, must be enum for state-machine
+uint8 ecnMode; // temporary, must be enum for state-machine
+// enum EcnMode {OFF, ECN_TEMP, ECN_VOLT};
+
 long ecnMillis = 0; // size?
-short ecnWaitTime = 2000; // pause between ecn screen update in mode 1
-int coolantTemp;
+short ecnWaitTime = 1500; // pause between ecn screen update in mode 1
+uint8 coolantTemp;
+uint8 voltage = 0;
 
 // Flags
 volatile bool flagHandBrake = false;
@@ -45,7 +48,7 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.04 2018-11-28");
+  SERIAL.println("Starting LS-module v1.05 2018-11-30");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
@@ -85,6 +88,7 @@ void loop()
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
       if (1 == ecnMode) {
+        debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
     } else if (r_msg->ID == 0x175) {
@@ -92,11 +96,13 @@ void loop()
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
         debug("left knob down");
-        ecnMode = 1;
-        log("ECN mode on");
+        ecnMode++;
+        debug("mode = ",ecnMode);
+        log("ECN mode on / +1");
       } else if ( (r_msg->Data[5] == 0x10) && (r_msg->Data[6] == 0x1F) ) {
-        debug("left knob down");
+        debug("left knob up");
         ecnMode = 0;
+        debug("mode = ",ecnMode);
         log("ECN mode off");
         lsShowEcn(0x0F, 0xF0, 0xFF); // temp
       }
@@ -114,7 +120,12 @@ void loop()
           flagHandBrake = false;
         }
       }
-
+    } else if (r_msg->ID == 0x500) { // voltage
+      debug("voltage");
+      if (2 == ecnMode) {
+        voltage = r_msg->Data[1]+28;
+        debug("read voltage");
+      }
       //========================
       //    } else if (r_msg->ID == 0x) {
       //if (r_msg->Data[1])
@@ -159,6 +170,27 @@ void loop()
       }
       debug("calculate tempToSpeed:", tempToSpeed);
       speedometer(tempToSpeed);
+    }
+  } else if ((2 == ecnMode) && (millis() > ecnMillis)) {
+    // process voltage
+    uint8 d0 = 0x00;
+    uint8 d1 = 0x00;
+    uint8 d2 = 0xEE;
+    
+    if (voltage < 100) {
+      debug("<10,0");
+      d2 = voltage;
+    } else {
+      debug(">10,0");
+      d1 = 0x01;
+      d2 = voltage - 100;
+    }
+    d2 = d2 / 10 * 16 + d2 % 10; // to hex but show like dec;
+    lsShowEcn(d0, d1, d2);
+    if (flagHandBrake) {
+// todo !! make out to tacho
+      debug("voltage*10 to speedometer");
+      speedometer(voltage);
     }
   }
 }

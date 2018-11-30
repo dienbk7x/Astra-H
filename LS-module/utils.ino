@@ -12,7 +12,7 @@ void debug(String str) {
 /**
    print out extra message + value
 */
-void debug(String str, long val) {
+void debug(String str, int val) {
 #ifdef DEBUG
   SERIAL.print(millis());
   SERIAL.print("\t");
@@ -53,7 +53,7 @@ void msCANSetup(void)
   // Initialize CAN module
   canBus.map(CAN_GPIO_PINS_MS);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);
-  canBus.free;
+  canBus.free();
 
   //  canBus.filter(0, 0, 0);
   canBus.filter(0, 0x206 << 21, 0xFFFFFFFF) ;   // filter 0 only allows standard identifier 0x206
@@ -76,13 +76,16 @@ void lsCANSetup(void)
   // Initialize CAN module
   canBus.map(CAN_GPIO_PINS_LS);
   Stat = canBus.begin(CAN_SPEED_33, CAN_MODE_NORMAL);
-  canBus.free;
+  canBus.free();
 
+   debug("setting filters...");
 //  canBus.filter(0, 0, 0);
    canBus.filter(0, 0x100 << 21, 0xFFFFFFFF) ; // nothing
    canBus.filter(1, 0x145 << 21, 0xFFFFFFFF) ; // engine tempr
    canBus.filter(2, 0x175 << 21, 0xFFFFFFFF) ; // Steering wheel buttons
    canBus.filter(3, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
+   canBus.filter(4, 0x500 << 21, 0xFFFFFFFF) ; // voltage
+   debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
   if (Stat != CAN_OK)
@@ -173,9 +176,6 @@ void lsShowEcn(uint8 d0, uint8 d1, uint8 d2) {
 
 void playWithEcn() {
   log("playing with ECN digits");
-  delay(200);
-  debug("000000");
-  lsShowEcn(0x00, 0x00, 0x00);
   delay(200);
   debug("111111");
   lsShowEcn(0x11, 0x11, 0x11);
