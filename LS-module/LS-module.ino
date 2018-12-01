@@ -31,7 +31,7 @@ uint8 ecnMode; // temporary, must be enum for state-machine
 // enum EcnMode {OFF, ECN_TEMP, ECN_VOLT};
 
 long ecnMillis = 0; // size?
-short ecnWaitTime = 1500; // pause between ecn screen update in mode 1
+short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
 uint8 coolantTemp;
 uint8 voltage = 0;
 
@@ -48,7 +48,7 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.05 2018-11-30");
+  SERIAL.println("Starting LS-module v1.07 2018-12-01");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
@@ -91,7 +91,8 @@ void loop()
         debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
-    } else if (r_msg->ID == 0x175) {
+
+    } else if (r_msg->ID == 0x175) { // Steering wheel buttons
       debug("Steering wheel buttons");
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
@@ -99,6 +100,10 @@ void loop()
         ecnMode++;
         debug("mode = ",ecnMode);
         log("ECN mode on / +1");
+        delay(100); // bad way to avoid multiple change
+        #ifdef DEBUG
+        lsBeep(ecnMode);
+        #endif
       } else if ( (r_msg->Data[5] == 0x10) && (r_msg->Data[6] == 0x1F) ) {
         debug("left knob up");
         ecnMode = 0;
@@ -120,6 +125,7 @@ void loop()
           flagHandBrake = false;
         }
       }
+
     } else if (r_msg->ID == 0x500) { // voltage
       debug("voltage");
       if (2 == ecnMode) {
@@ -173,6 +179,7 @@ void loop()
     }
   } else if ((2 == ecnMode) && (millis() > ecnMillis)) {
     // process voltage
+    ecnMillis = millis() + ecnWaitTime;
     uint8 d0 = 0x00;
     uint8 d1 = 0x00;
     uint8 d2 = 0xEE;
@@ -190,7 +197,7 @@ void loop()
     if (flagHandBrake) {
 // todo !! make out to tacho
       debug("voltage*10 to speedometer");
-      speedometer(voltage);
+      // speedometer(voltage);
     }
   }
 }

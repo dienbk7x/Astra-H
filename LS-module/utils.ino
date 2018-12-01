@@ -24,7 +24,7 @@ void debug(String str, int val) {
 /**
    print out extra message + HEX value
 */
-void debugHex(String str, long val) {
+void debugHex(String str, int val) {
 #ifdef DEBUG    
   SERIAL.print(millis());
   SERIAL.print("\t");
@@ -223,7 +223,7 @@ void panelCheck() {
    Вывод на спидометр
 */
 void speedometer (int speed) {
-  uint8 data = speed/2;
+  uint8 data = speed / 2;
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x06, 0x01, data, 0x00, 0x00, 0x00); // speed
 
 }
