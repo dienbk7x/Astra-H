@@ -229,6 +229,14 @@ void speedometer (int speed) {
 }
 
 /**
+   Вывод на тахометр. Число от 0 до 80
+*/
+void tahometer (int taho) {
+  uint8 data = map(taho, 0,80, 0x00, 0x7F);
+SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, data, 0x00, 0x00, 0x00); // tacho
+}
+
+/**
     издать звуковой сигнал
       перерыв = wait*10 мс
       длительность = length*10мс

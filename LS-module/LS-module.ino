@@ -28,7 +28,7 @@
 /////// === Глобальные переменные === ///////
 /* global variables */
 uint8 ecnMode; // temporary, must be enum for state-machine
-// enum EcnMode {OFF, ECN_TEMP, ECN_VOLT};
+enum EcnMode {OFF, ECN_TEMP, ECN_VOLT};
 
 long ecnMillis = 0; // size?
 short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
@@ -48,7 +48,7 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.07 2018-12-01");
+  SERIAL.println("Starting LS-module v1.08 2018-12-02");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
@@ -87,7 +87,7 @@ void loop()
 
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
-      if (1 == ecnMode) {
+      if (ECN_TEMP == ecnMode) {
         debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
@@ -128,7 +128,7 @@ void loop()
 
     } else if (r_msg->ID == 0x500) { // voltage
       debug("voltage");
-      if (2 == ecnMode) {
+      if (ECN_VOLT == ecnMode) {
         voltage = r_msg->Data[1]+28;
         debug("read voltage");
       }
@@ -143,7 +143,7 @@ void loop()
   }
   // close while
   // ======== check flags and execute actions =========
-  if ((1 == ecnMode) && (millis() > ecnMillis)) {
+  if ((ECN_TEMP == ecnMode) && (millis() > ecnMillis)) {
     debug("(1 == ecnMode) && (millis() > ecnMillis)");
     debug("Coolant: ", coolantTemp - 40);
 
@@ -177,7 +177,7 @@ void loop()
       debug("calculate tempToSpeed:", tempToSpeed);
       speedometer(tempToSpeed);
     }
-  } else if ((2 == ecnMode) && (millis() > ecnMillis)) {
+  } else if ((ECN_VOLT == ecnMode) && (millis() > ecnMillis)) {
     // process voltage
     ecnMillis = millis() + ecnWaitTime;
     uint8 d0 = 0x00;
@@ -196,8 +196,9 @@ void loop()
     lsShowEcn(d0, d1, d2);
     if (flagHandBrake) {
 // todo !! make out to tacho
-      debug("voltage*10 to speedometer");
-      // speedometer(voltage);
+      debug("voltage-100 to tahometer");
+      uint8 toTaho = (voltage>100)?(voltage-100):0;
+      tahometer(toTaho);
     }
   }
 }
