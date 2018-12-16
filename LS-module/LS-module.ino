@@ -48,7 +48,7 @@ void setup()
 {
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.08 2018-12-02");
+  SERIAL.println("Starting LS-module v1.09 2018-12-16");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
