@@ -110,7 +110,8 @@ CAN_TX_MBX CANsend(CanMsg *pmsg) // Should be moved to the library?!
 /**
    Print out received message to SERIAL out
 */
-void printMsg(CanMsg *r_msg) {
+// void printMsg(CanMsg *r_msg) {
+void printMsg(void) {
 #ifdef DEBUG
   digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
   SERIAL.print(millis());

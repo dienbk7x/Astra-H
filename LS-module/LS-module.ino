@@ -112,6 +112,11 @@ void loop()
         lsShowEcn(0x0F, 0xF0, 0xFF); // temp
       }
 
+    } else if (r_msg->ID == 0x230) {
+      debug("Doors/locks");
+      printMsg();
+
+    
     } else if (r_msg->ID == 0x370) {
       debug("handbrake, fog lights, etc...");
       if ((r_msg->Data[1]) & 0x01) {
