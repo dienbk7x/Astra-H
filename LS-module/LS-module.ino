@@ -23,15 +23,22 @@
 #define PC13OFF 1
 
 // default delay?
-#define DELAY 200
+#define DELAY 500
 
 /////// === Глобальные переменные === ///////
 /* global variables */
 uint8 ecnMode; // temporary, must be enum for state-machine
-enum EcnMode {OFF, ECN_TEMP, ECN_VOLT};
+enum EcnMode {
+  OFF=0, 
+  ECN_TEMP_VOLT,
+  ECN_SPEED,
+  ECN_DOORS
+};
 
 long ecnMillis = 0; // size?
 short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
+long btnMillis = 0; // size?
+short btnWaitTime = 250; // pause between steering wheel buttons read
 uint8 coolantTemp;
 uint8 voltage = 0;
 
@@ -46,9 +53,10 @@ CanMsg *r_msg;
 
 void setup()
 {
+  delay(DELAY);
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.09 2018-12-16");
+  SERIAL.println("Starting LS-module v1.10 2019-05-16");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
@@ -56,7 +64,7 @@ void setup()
   delay(DELAY);
 
   debug("Setting globals");
-  ecnMode = 0;
+  ecnMode = 1;
   coolantTemp = 40;
 
   pinMode(PC13, OUTPUT); // LED is ON until end of setup()
@@ -69,7 +77,7 @@ void setup()
   wakeUpBus();
   lsBeep(2);
   panelCheck();
-  playWithEcn();
+  // playWithEcn();
 
   digitalWrite(PC13, PC13OFF);
 }
@@ -87,12 +95,17 @@ void loop()
 
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
-      if (ECN_TEMP == ecnMode) {
+      if (ECN_TEMP_VOLT == ecnMode) {
         debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
+      
+      if ( millis() > btnMillis ) {
+        btnMillis = millis() + btnWaitTime;
+      } else break;
+
       debug("Steering wheel buttons");
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
@@ -104,13 +117,26 @@ void loop()
         #ifdef DEBUG
         lsBeep(ecnMode);
         #endif
-      } else if ( (r_msg->Data[5] == 0x10) && (r_msg->Data[6] == 0x1F) ) {
+      } else if ( (r_msg->Data[5] == 0x10) && 
+                  (r_msg->Data[6] == 0x1F) ) {
         debug("left knob up");
         ecnMode = 0;
         debug("mode = ",ecnMode);
         log("ECN mode off");
         lsShowEcn(0x0F, 0xF0, 0xFF); // temp
+      } else if ( (r_msg->Data[5] == 0x11) && 
+                  (r_msg->Data[6] == 0x1F) && 
+                  (r_msg->Data[7] == 0x01) ) {
+        debug("both knobs up");
+        lsDoThanks();
       }
+
+      if ( (r_msg->Data[5] == 0x10) && 
+           (r_msg->Data[6] == 0x1F) &&
+           (r_msg->Data[0] == 0x08)) {
+        debug("left knob up + lights pull");
+        lsDoStrob();
+      }  
 
     } else if (r_msg->ID == 0x230) {
       debug("Doors/locks");
@@ -133,7 +159,7 @@ void loop()
 
     } else if (r_msg->ID == 0x500) { // voltage
       debug("voltage");
-      if (ECN_VOLT == ecnMode) {
+      if (ECN_TEMP_VOLT== ecnMode) {
         voltage = r_msg->Data[1]+28;
         debug("read voltage");
       }
@@ -148,30 +174,46 @@ void loop()
   }
   // close while
   // ======== check flags and execute actions =========
-  if ((ECN_TEMP == ecnMode) && (millis() > ecnMillis)) {
+  if ((ECN_TEMP_VOLT == ecnMode) && (millis() > ecnMillis)) {
     debug("(1 == ecnMode) && (millis() > ecnMillis)");
     debug("Coolant: ", coolantTemp - 40);
 
     ecnMillis = millis() + ecnWaitTime;
     // process coolant
-    uint8 d0 = 0x0C;
-    uint8 d1 = 0xEE;
-    uint8 d2 = 0xEE;
+    uint8 d0 = 0x00; // temp[1,2]
+    uint8 d1 = 0x00; // temp[3], volt[1]
+    uint8 d2 = 0x00; // volt[2,3]
+
     uint8 ampl = 0;
     if (coolantTemp < 40) {
       ampl = 40 - coolantTemp; // amplitude
-      d1 = 0x0F;
+      d0 = 0xF0;
     } else {
       ampl = coolantTemp - 40;
       if (ampl < 100) {
-        d1 = 0x00;
+        d0 = 0xC0;
       } else {
-        d1 = 0x01;
+        d0 = 0x10;
         ampl = ampl - 100;
       }
     }
-    d2 = ampl / 10 * 16 + ampl % 10; // to hex but show like dec;
+    d0 += ampl/10;
+    d1 += ampl % 10 * 16;
+    // d2 += ampl / 10 * 16 + ampl % 10; // to hex but show like dec;
+    // lsShowEcn(d0, d1, d2);
+
+    // process voltage
+    if (voltage < 100) {
+      debug("<10,0");
+      d2 = voltage;
+    } else {
+      debug(">10,0");
+      d1 += 0x01;
+      d2 = voltage - 100;
+    }
+    d2 = d2 / 10 * 16 + d2 % 10; // to hex but show like dec;
     lsShowEcn(d0, d1, d2);
+
     if (flagHandBrake) {
       uint8 tempToSpeed;
       if (coolantTemp < 40) {
@@ -181,26 +223,7 @@ void loop()
       }
       debug("calculate tempToSpeed:", tempToSpeed);
       speedometer(tempToSpeed);
-    }
-  } else if ((ECN_VOLT == ecnMode) && (millis() > ecnMillis)) {
-    // process voltage
-    ecnMillis = millis() + ecnWaitTime;
-    uint8 d0 = 0x00;
-    uint8 d1 = 0x00;
-    uint8 d2 = 0xEE;
-    
-    if (voltage < 100) {
-      debug("<10,0");
-      d2 = voltage;
-    } else {
-      debug(">10,0");
-      d1 = 0x01;
-      d2 = voltage - 100;
-    }
-    d2 = d2 / 10 * 16 + d2 % 10; // to hex but show like dec;
-    lsShowEcn(d0, d1, d2);
-    if (flagHandBrake) {
-// todo !! make out to tacho
+
       debug("voltage-100 to tahometer");
       uint8 toTaho = (voltage>100)?(voltage-100):0;
       tahometer(toTaho);

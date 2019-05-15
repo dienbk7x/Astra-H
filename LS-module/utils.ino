@@ -46,6 +46,8 @@ void log(String str) {
 #endif
 }
 
+// ======== CAN related ==========
+
 void msCANSetup(void)
 {
   CAN_STATUS Stat ;
@@ -83,8 +85,8 @@ void lsCANSetup(void)
    canBus.filter(0, 0x100 << 21, 0xFFFFFFFF) ; // nothing
    canBus.filter(1, 0x145 << 21, 0xFFFFFFFF) ; // engine tempr
    canBus.filter(2, 0x175 << 21, 0xFFFFFFFF) ; // Steering wheel buttons
-   canBus.filter(3, 0x230 <<  21, 0xFFFFFFFF) ; // doors and locls
-      canBus.filter(4, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
+   canBus.filter(3, 0x230 << 21, 0xFFFFFFFF) ; // doors and locls
+   canBus.filter(4, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(5, 0x500 << 21, 0xFFFFFFFF) ; // voltage
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
@@ -100,9 +102,14 @@ void lsCANSetup(void)
 CAN_TX_MBX CANsend(CanMsg *pmsg) // Should be moved to the library?!
 {
   CAN_TX_MBX mbx;
+  char count = 0;
   do
   {
     mbx = canBus.send(pmsg) ;
+    if (count++ > 64) {
+      log("64 tries failed. No mailbox accessible");
+      break;
+    };
   }
   while (mbx == CAN_TX_NO_MBX) ;      // Waiting outbound frames will eventually be sent, unless there is a CAN bus failure.
   return mbx ;
@@ -243,7 +250,7 @@ SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, data, 0x00, 0x00, 0x00); // tac
       перерыв = wait*10 мс
       длительность = length*10мс
 */
-void lsBeep(uint8 wait = 0x1e, uint8 count = 0x03, uint8 length = 0x33) {
+void lsBeep(uint8 wait, uint8 count, uint8 length) {
   log("==>making beep!");
   //пример сообщения ls.sendMessage(0x280,5,0x70,0x05,0x1e,0x03,0x33);
   SendCANmessage(0x280, 5, 0x70, 0x05, wait, count, length, 0, 0, 0);
@@ -262,6 +269,28 @@ void lsBeep(uint8 count) {
 */
 void lsBeep() {
   lsBeep(0x1e, 0x03, 0x33);
+}
+
+/**
+ * Мигнуть два раза задними поворотниками
+ */
+void lsDoThanks(){
+  debug("Start blinking back");
+  lsBeep(0x01);
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0xC0, 0xC0, 0, 0, 0);
+  delay(250);
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0xC0, 0, 0, 0);
+  delay(250);
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0xC0, 0xC0, 0, 0, 0);
+  delay(250);
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0xC0, 0, 0, 0);
+  lsBeep(0x01);
+  debug("Stop blinking back");
+}
+
+void lsDoStrob(){
+  debug("lsDoStrob  -  To be done");
+  lsBeep();
 }
 #endif
 
