@@ -102,7 +102,7 @@ String Data_USART() {
   return Buffer_USART;
 }
 
-String data_to_str(int data) {
+String data_to_str(int data) {     //Convert temperature and voltage data to the corresponding type string
   String strf = String(data);
   int y = strf.length() - 1;
   char x = strf.charAt(y);
