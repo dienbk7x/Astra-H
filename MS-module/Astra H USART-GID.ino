@@ -255,12 +255,17 @@ void generate_aux_message(String title, byte* byte_array, int* array_length, int
 {
   int p = *array_length;
   byte_append(byte_array, &p, 0x03);
+  //append_generate_string(0x02,"Aux",&p);              //Uncomment for tab mode
+  //append_generate_string(0x01," ",&p);                //Uncomment for tab mode
   append_generate_string(0x10, title, byte_array, &p);
+  //append_generate_string(0x11,artist,&p);             //Uncomment for tab mode
+  //append_generate_string(0x12,album,&p,mode);         //Uncomment for tab mode
   byte_array[4] = byte(p - 5);
   byte_array[3] = 0x00;
   byte_array[2] = 0xC0;
   byte_array[1] = byte(p - 2);
   byte_array[0] = 0x10;
+  //byte_append(data,&p,0x01);                          //Uncomment for tab mode
   *array_length = p;
 }
 void message_to_DIS(String title, int mode = 0, byte* byte_array = data)
