@@ -332,12 +332,6 @@ void loop() {
   }
   if (canBus.available() > 0)
   { r_msg = canBus.recv();
-#ifdef DEBUG
-    char scan[40];
-    sprintf (scan, "\n%d: %04X # %02X %02X %02X %02X %02X %02X %02X %02X ", millis(),
-             r_msg->ID, r_msg->Data[0], r_msg->Data[1], r_msg->Data[2], r_msg->Data[3], r_msg->Data[4], r_msg->Data[5], r_msg->Data[6], r_msg->Data[7]);
-    Serial2.print(scan);
-#endif
     switch (r_msg->ID)
     {
       case MS_WHEEL_BUTTONS_ID: {
@@ -408,6 +402,12 @@ void loop() {
           break;
         }
     }
+ #ifdef DEBUG
+    char scan[40];
+    sprintf (scan, "\n%d: %04X # %02X %02X %02X %02X %02X %02X %02X %02X ", millis(),
+             r_msg->ID, r_msg->Data[0], r_msg->Data[1], r_msg->Data[2], r_msg->Data[3], r_msg->Data[4], r_msg->Data[5], r_msg->Data[6], r_msg->Data[7]);
+    Serial2.print(scan);
+#endif
   }
   canBus.free();
 
