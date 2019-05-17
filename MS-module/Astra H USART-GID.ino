@@ -126,7 +126,6 @@ String data_to_str(int data) {     //Convert temperature and voltage data to the
 HardwareCAN canBus(CAN1_BASE);
 CanMsg msg ;
 CanMsg *r_msg;
-bool bus_err = 0;
 void CANSetup(void)
 {
   CAN_STATUS Stat ;
