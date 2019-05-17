@@ -52,6 +52,7 @@
 #define PC13ON 0
 #define PC13OFF 1
 #define DELAY 250
+//#define DEBUG  //Debug activation will increase the ant of memory by ~16k
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                         ASTRA H VARIABLES AND FUNCTIONS                             //
@@ -98,7 +99,9 @@ String Data_USART() {
     char u = Serial2.read();
     if (u != 0xD) Buffer_USART += u;  // skip \r
   }
+#ifdef DEBUG
   Serial2.print(Buffer_USART);
+#endif
   return Buffer_USART;
 }
 
@@ -136,10 +139,9 @@ void CANSetup(void)
   canBus.filter(3, 0x548, 0xFFFFFFFF);
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
-  if (Stat != CAN_OK)
-  { // Initialization failed
-    Serial2.print("Initialization failed");
-  }
+#ifdef DEBUG
+  if (Stat != CAN_OK) Serial2.print("Initialization failed");
+#endif
 }
 
 void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 = 0x00, byte d2 = 0x00, byte d3 = 0x00, byte d4 = 0x00, byte d5 = 0x00, byte d6 = 0x00, byte d7 = 0x00)
@@ -166,7 +168,9 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
     canBus.cancel(CAN_TX_MBX0);
     canBus.cancel(CAN_TX_MBX1);
     canBus.cancel(CAN_TX_MBX2);
+ #ifdef DEBUG
     Serial2.print("CAN-Bus send error");
+#endif
   }
   // Send this frame
 }
@@ -328,18 +332,12 @@ void loop() {
   }
   if (canBus.available() > 0)
   { r_msg = canBus.recv();
-    Serial2.print(millis());
-    Serial2.print("; ");
-    Serial2.print(r_msg->ID, HEX);
-    Serial2.print(" # ");
-    Serial2.print(r_msg->Data[0], HEX);       Serial2.print(" ");
-    Serial2.print(r_msg->Data[1], HEX);        Serial2.print(" ");
-    Serial2.print(r_msg->Data[2], HEX);       Serial2.print(" ");
-    Serial2.print(r_msg->Data[3], HEX);       Serial2.print(" ");
-    Serial2.print(r_msg->Data[4], HEX);       Serial2.print(" ");
-    Serial2.print(r_msg->Data[5], HEX);       Serial2.print(" ");
-    Serial2.print(r_msg->Data[6], HEX);       Serial2.print(" ");
-    Serial2.println(r_msg->Data[7], HEX);
+#ifdef DEBUG
+    char scan[40];
+    sprintf (scan, "\n%d: %04X # %02X %02X %02X %02X %02X %02X %02X %02X ", millis(),
+             r_msg->ID, r_msg->Data[0], r_msg->Data[1], r_msg->Data[2], r_msg->Data[3], r_msg->Data[4], r_msg->Data[5], r_msg->Data[6], r_msg->Data[7]);
+    Serial2.print(scan);
+#endif
     switch (r_msg->ID)
     {
       case MS_WHEEL_BUTTONS_ID: {
@@ -368,7 +366,9 @@ void loop() {
             d_mode = int((r_msg->Data[1]) - 0x30);
           if ((r_msg->Data[1]) == MS_BTN_OK)
             d_mode = 0;
+#ifdef DEBUG
           Serial2.print("MEDIA BUTTON PRESS: " + d_mode);
+#endif
           break;
         }
       case MS_MEDIA_ID: {                                                   //If EHU in AUX-Mode
@@ -387,7 +387,9 @@ void loop() {
             delay(1);
             digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
             SendCANmessage(MS_MEDIA_ID, 8, 0x10, 0x05, 0xC0, 0x00, 0x03, 0x03, 0x10, 0x00); //Corrupt message
+#ifdef DEBUG
             Serial2.println("Corrupt message");
+#endif
             digitalWrite(PC13, PC13OFF);
           }
           break;
