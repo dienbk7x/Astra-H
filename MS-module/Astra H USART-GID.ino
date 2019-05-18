@@ -177,8 +177,8 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                       TRANSFORM TEXT AND FUNCTIONS SEND TO DIS                      //
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
-byte data[255];
-int l = 5;
+byte data[255];  //Data Buffer for Package Preparation
+int data_lenght = 5;  //Useful length of data array for package preparation
 // ******************* UTF8-Decoder: convert UTF8-string to extended ASCII ***********************
 static byte c1;  // Last character buffer
 // Convert a single Character from UTF8 to Extended ASCII
@@ -211,90 +211,69 @@ String utf8ascii(String s)
   return r;
 }
 // ******************* Append bytes to the end of the array ***********************
-void byte_append(byte* array1, int* len1, byte add_byte)
+void byte_append(byte add_byte)
 {
-  if (*len1 < 254)
+  if (data_lenght < 254)
   {
-    array1[*len1] = add_byte;
-    *len1 += 1;
+    data[data_lenght] = add_byte;
+    data_lenght += 1;
   }
 }
 // ******************* Append Unicode text to the end of the byte array ***********************
-void append_data_str(String text, byte* data_byte, int* length_byte)
+void append_data_str(byte id, String text)
 {
-  int text_len = text.length();
+  String str = utf8ascii(text);
+  int text_len = str.length();
+  byte_append(id);
+  byte_append(byte(text_len));
   char char_array[text_len + 1];
   text.toCharArray(char_array, text_len + 1);
-  for (int i = 0; (i < text_len) & (*length_byte < 254); i++)
+  for (int i = 0; (i < text_len) & (data_lenght < 254); i++)
   {
-    data_byte[*length_byte] = 0x00;
-    data_byte[*length_byte + 1] = byte(char_array[i]);
-    *length_byte += 2;
+    data[data_lenght] = 0x00;
+    data[data_lenght + 1] = byte(char_array[i]);
+    data_lenght += 2;
   }
 }
 // ************************** String generation  ****************************
-void append_generate_string(byte id, String text, byte* byte_array, int* array_length, int number = 0)
+void generate_aux_message(String title)
 {
-  String str = utf8ascii(text);
-  int str_len = str.length();
-  int p = *array_length;
-  byte_append(byte_array, &p, id);
-  if (number > 0)
-  {
-    byte_append(byte_array, &p, byte(str_len + 2));
-    byte_append(byte_array, &p, 0x27);
-    byte_append(byte_array, &p, byte(127 + number));
-    byte_append(byte_array, &p, 0x00);
-    byte_append(byte_array, &p, 0x20);
-  }
-  else
-  {
-    byte_append(byte_array, &p, byte(str_len));
-  }
-  append_data_str(str, data, &p);
-  *array_length = p;
+  byte_append(0x03);
+  //append_data_str(0x02,"Aux");
+  //append_data_str(0x01," ");
+  append_data_str(0x10, title);
+  //append_data_str(0x11,artist);
+  //append_data_str(0x12,album);
+  //byte_append(0x01);  //End of message.
+  data[4] = byte(data_lenght - 5);
+  data[3] = 0x00;
+  data[2] = 0xC0;
+  data[1] = byte(data_lenght - 2);
+  data[0] = 0x10;
+
 }
-void generate_aux_message(String title, byte* byte_array, int* array_length, int mode)
+// ************************** Generation package and send  ****************************
+void message_to_DIS (String title)
 {
-  int p = *array_length;
-  byte_append(byte_array, &p, 0x03);
-  //append_generate_string(0x02,"Aux",&p);              //Uncomment for tab mode
-  //append_generate_string(0x01," ",&p);                //Uncomment for tab mode
-  append_generate_string(0x10, title, byte_array, &p);
-  //append_generate_string(0x11,artist,&p);             //Uncomment for tab mode
-  //append_generate_string(0x12,album,&p,mode);         //Uncomment for tab mode
-  byte_array[4] = byte(p - 5);
-  byte_array[3] = 0x00;
-  byte_array[2] = 0xC0;
-  byte_array[1] = byte(p - 2);
-  byte_array[0] = 0x10;
-  //byte_append(data,&p,0x01);                          //Uncomment for tab mode
-  *array_length = p;
-}
-void message_to_DIS(String title, int mode = 0, byte* byte_array = data)
-{
-  if ((title != Prev_Message) || Prev_Message == "") {
-    l = 5;
-    generate_aux_message(title, byte_array, &l, mode);
+  if ((Prev_Message != title) || Prev_Message == "") {
+    data_lenght = 5;
+    generate_aux_message(title);
     Prev_Message = title;
   }
   int num = 0;
   int pos = 0;
   byte line[8];
-  for (int i = 0; i < l; i++)
+  for (int i = 0; i < data_lenght; i++)
   { if (pos == 8)
     {
       num += 1;
-      if (num == 16)
-      {
-        num = 0;
-      }
+      if (num == 16) num = 0;
       SendCANmessage(MS_MEDIA_ID, 8, line[0], line[1], line[2], line[3], line[4], line[5], line[6], line[7]);
       pos = 0;
       line[pos] = byte(num + 32);
       pos += 1;
     }
-    line[pos] = byte_array[i];
+    line[pos] = data[i];
     pos += 1;
   }
   for (int i = pos; pos < 8; i++)
