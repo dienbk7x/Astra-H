@@ -227,7 +227,7 @@ void append_data_str(byte id, String text)
   byte_append(id);
   byte_append(byte(text_len));
   char char_array[text_len + 1];
-  text.toCharArray(char_array, text_len + 1);
+  str.toCharArray(char_array, text_len + 1);
   for (int i = 0; (i < text_len) & (data_lenght < 254); i++)
   {
     data[data_lenght] = 0x00;
