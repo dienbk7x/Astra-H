@@ -65,16 +65,16 @@ String Bold(String Text) {
   return (String(char_Bold) + Text);
 }
 String Normal(String Text) {
-  char char_Bold[] = {0x1b, 0x5b, 0x66, 0x53, 0x5f, 0x64, 0x6d, 0x00};
-  return (String(char_Bold) + Text);
+  char char_Normal[] = {0x1b, 0x5b, 0x66, 0x53, 0x5f, 0x64, 0x6d, 0x00};
+  return (String(char_Normal) + Text);
 }
 String Right(String Text) {
-  char char_Bold[] = {0x1b, 0x5b, 0x72, 0x6d, 0x00};
-  return (String(char_Bold) + Text);
+  char char_Right[] = {0x1b, 0x5b, 0x72, 0x6d, 0x00};
+  return (String(char_Right) + Text);
 }
 String Central(String Text) {
-  char char_Bold[] = {0x1b, 0x5b, 0x63, 0x6d, 0x00};
-  return (String(char_Bold) + Text);
+  char char_Central[] = {0x1b, 0x5b, 0x63, 0x6d, 0x00};
+  return (String(char_Central) + Text);
 }
 //**************Variables
 bool pause = 0;
