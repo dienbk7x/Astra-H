@@ -368,7 +368,7 @@ void loop() {
         }
       case MS_ECC_ID: {
           if (r_msg->Data[0] == MS_BATTERY) {
-            VOLTAGE = (r_msg->Data[0]);
+            VOLTAGE = (r_msg->Data[2]);
           }
           if (r_msg->Data[0] == MS_ENGINE_TEMP) {
             T_ENG = (((r_msg->Data[3]) * 256) + (r_msg->Data[4]));
