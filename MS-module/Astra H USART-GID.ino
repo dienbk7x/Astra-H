@@ -219,7 +219,7 @@ void byte_append(byte add_byte)
     data_lenght += 1;
   }
 }
-// ******************* Append Unicode text to the end of the byte array ***********************
+// ******************* Transform extended ASCII to UTF16 and append text to the end of the byte array ***************
 void append_data_str(byte id, String text)
 {
   String str = utf8ascii(text);
