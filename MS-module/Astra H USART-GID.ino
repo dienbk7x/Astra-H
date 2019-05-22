@@ -309,10 +309,6 @@ void setup() {
 //                                   LOOP FUNCTIONS                                    //
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 void loop() {
-  bool BTN_STATION = 0;
-  bool BTN_MODE = 0;
-  bool BTN_NEXT = 0;
-  bool BTN_PREV = 0;
   if ((millis() - time_request_ecc) > 1000) {
     SendCANmessage(0x0248, 8, 0x06, 0xAA, 0x01, 0x01, 0x07, 0x10, 0x11, 0x00);
     time_request_ecc = millis();
