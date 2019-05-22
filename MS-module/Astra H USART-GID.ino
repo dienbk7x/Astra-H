@@ -76,20 +76,24 @@ String Central(String Text) {
   char char_Central[] = {0x1b, 0x5b, 0x63, 0x6d, 0x00};
   return (String(char_Central) + Text);
 }
-//**************Variables
-bool pause = 0;
+//**************Variables****************//
+bool alarm = 0;
+bool Blink = 0;
+bool AUX_mode = 0;
 int d_mode = 0;
 int VOLTAGE = 131;
-int T_ENG = 1314;
+int T_ENG = 1000;
 int SPEED = 0;
 int RPM = 0;
 uint32_t time_request_ecc = 0;          //Variable for the parameter request timer from ECC
 uint32_t time_send = 0;                 //Variable for the burst transfer timer in CAN
 uint32_t Time_USART = 0;                //Variable for the USART buffer fill timer
-uint32_t Time_Update_Message = 0;
+uint32_t Time_Update_Message = 0;       //Variable for return to the main message after receiving a USART message
+uint32_t Pause_Update_DIS = 0;          //Variable to pause the DIS update for the duration of the data transfer EHU 
 String Prev_Message;
 String Message_USART;
 String message;
+
 
 
 String Data_USART() {
@@ -105,17 +109,22 @@ String Data_USART() {
   return Buffer_USART;
 }
 
-String data_to_str(int data) {     //Convert temperature and voltage data to the corresponding type string
+String data_to_str(int data, int digits) {  //Convert temperature and voltage data to the corresponding type string
   String strf = String(data);
   int y = strf.length() - 1;
-  char x = strf.charAt(y);
-  strf.setCharAt(y, ',');
-  strf += x;
+  if (digits == 1) {
+    char x = strf.charAt(y);
+    strf.setCharAt(y, ',');
+    strf += (x);
+  }
+  else strf = strf.substring(0, y);
   return strf;
 }
 
-//String text_construct(){}
-
+String Alarm(bool Sinchro) {
+  if (Sinchro) return (">>TEMP ENGINE-" + data_to_str(T_ENG, 0) + "°C<<");
+  else       return ("--TEMP ENGINE-" + data_to_str(T_ENG, 0) + "°C--");
+}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                             CAN-BUS VARIABLES AND FUNCTIONS                         //
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
@@ -315,26 +324,43 @@ void loop() {
       case MS_WHEEL_BUTTONS_ID: {
           switch (r_msg->Data[1]) {
             case MS_BTN_STATION: {
-                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) BTN_STATION = 1;
+                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) 
+ #ifdef DEBUG               
+                Serial2.print("\nBTN_STATION Pressed");
+ #endif               
                 break;
               }
             case MS_BTN_MODE: {
-                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) BTN_MODE = 1; //Set flag button on
+                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) 
+ #ifdef DEBUG                
+                Serial2.print("\nBTN_MODE Pressed");
+ #endif                
                 break;
               }
             case MS_BTN_NEXT: {
-                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) BTN_NEXT = 1; //Set flag button on
+                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) {
+ #ifdef DEBUG               
+                Serial2.print("\nBTN_NEXT Pressed");
+ #endif      
+                }
                 break;
               }
             case MS_BTN_PREV: {
-                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) BTN_PREV = 1; //Set flag button on
+                if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[2]) == 0x00)) {
+ #ifdef DEBUG               
+                Serial2.print("\nBTN_PREV Pressed");
+ #endif                        
+                }
                 break;
               }
           }
           break;
         }
       case MS_MEDIA_BUTTONS_ID: {
-          if ((r_msg->Data[0] == BTN_PRESSED) && ((r_msg->Data[1]) > 0x30) && ((r_msg->Data[1]) < 0x35) && ((r_msg->Data[2]) == 0x00))
+          if ((r_msg->Data[0] == BTN_PRESSED) &&
+              ((r_msg->Data[1]) > 0x30) &&
+              ((r_msg->Data[1]) < 0x35) &&
+              ((r_msg->Data[2]) == 0x00))
             d_mode = int((r_msg->Data[1]) - 0x30);
           if ((r_msg->Data[1]) == MS_BTN_OK)
             d_mode = 0;
@@ -344,26 +370,34 @@ void loop() {
           break;
         }
       case MS_MEDIA_ID: {                                                   //If EHU in AUX-Mode
-          if (((r_msg->Data[0]) == 0x10 && (r_msg->Data[1]) == 0x2E
-               && (r_msg->Data[2]) == 0xC0 && (r_msg->Data[3]) == 0x00
-               && (r_msg->Data[4]) == 0x2B && (r_msg->Data[5]) == 0x03
-               && (r_msg->Data[6]) == 0x01 && (r_msg->Data[7]) == 0x01) ||
-              ((r_msg->Data[0]) == 0x10 && (r_msg->Data[1]) == 0x22
-               && (r_msg->Data[2]) == 0xC0 && (r_msg->Data[3]) == 0x00
-               && (r_msg->Data[4]) == 0x1F && (r_msg->Data[5]) == 0x03
-               && (r_msg->Data[6]) == 0x10 && (r_msg->Data[7]) == 0x0E) ||
-              ((r_msg->Data[0]) == 0x10 && (r_msg->Data[1]) == 0x22
-               && (r_msg->Data[2]) == 0x40 && (r_msg->Data[3]) == 0x00
-               && (r_msg->Data[4]) == 0x2F && (r_msg->Data[5]) == 0x03
-               && (r_msg->Data[6]) == 0x01 && (r_msg->Data[7]) == 0x03)) {
+          Pause_Update_DIS = millis();
+          if ((((r_msg->Data[0]) == 0x10) | ((r_msg->Data[0]) == 0x21)) && AUX_mode)  {
+            //            if (((r_msg->Data[0]) == 0x21) && AUX_mode)  {
             delay(1);
-            digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
-            SendCANmessage(MS_MEDIA_ID, 8, 0x10, 0x05, 0xC0, 0x00, 0x03, 0x03, 0x10, 0x00); //Corrupt message
+            SendCANmessage(MS_MEDIA_ID, 8, 0x21, 0x3A, 0xC0, 0x00, 0x37, 0x03, 0x10, 0x1A); //Corrupt message
 #ifdef DEBUG
-            Serial2.println("Corrupt message");
+            Serial2.print("\nCorrupt message");
 #endif
-            digitalWrite(PC13, PC13OFF);
           }
+          if ((r_msg->Data[0]) == 0x24) {
+            if (((r_msg->Data[3]) != 0x41) && ((r_msg->Data[5]) != 0x75) && ((r_msg->Data[7]) != 0x78))
+            {
+              AUX_mode = 0;
+#ifdef DEBUG
+              Serial2.print("\nAUX OFF");
+#endif
+            }
+            else {
+              if (AUX_mode == 0) {
+                delay(200);
+                AUX_mode = 1;
+#ifdef DEBUG
+                Serial2.print("\nAUX ON");
+#endif
+              }
+            }
+          }
+
           break;
         }
       case MS_ECC_ID: {
@@ -380,41 +414,46 @@ void loop() {
           break;
         }
     }
- #ifdef DEBUG
+#ifdef DEBUG
     char scan[40];
     sprintf (scan, "\n%d: %04X # %02X %02X %02X %02X %02X %02X %02X %02X ", millis(),
-             r_msg->ID, r_msg->Data[0], r_msg->Data[1], r_msg->Data[2], r_msg->Data[3], r_msg->Data[4], r_msg->Data[5], r_msg->Data[6], r_msg->Data[7]);
+             r_msg->ID, r_msg->Data[0], r_msg->Data[1], r_msg->Data[2], r_msg->Data[3],
+             r_msg->Data[4], r_msg->Data[5], r_msg->Data[6], r_msg->Data[7]);
     Serial2.print(scan);
 #endif
   }
   canBus.free();
 
 
+  if (T_ENG > 1080) {
+    alarm = 1;
+    message = Alarm(Blink);
+  }
+  else alarm = 0;
+
   if (millis() - Time_USART > 200) {   //delay needed to fillup buffers
     Message_USART = Data_USART();
     Time_USART = millis();
   }
-/*
-  if ((millis() - Time_Update_Message) > 2000) {
-    message = (Normal(data_to_str(T_ENG) + "C" + "/" + data_to_str(VOLTAGE) + "V"));
-    message += Central(Bold("USB 12/256"))
-               Time_Update_Message = millis();
+
+  if (((millis() - Time_Update_Message) > 3000) && !alarm) {
+    message = Normal(data_to_str(T_ENG, 0)) + "°C" + "/" + data_to_str(VOLTAGE, 1) + "V";
+    message += Right(Bold("USB:232/480"));
+    Time_Update_Message = millis();  //To return to the main message after receiving a USART message
   }
 
-  if (message == "") {
-    message = (Normal(data_to_str(T_ENG) + "C" + "/" + data_to_str(VOLTAGE) + "V"));
-  }
+  if ((message == "") && !alarm) message = Normal(data_to_str(T_ENG, 0)) + "°C" + "/" + data_to_str(VOLTAGE, 1) + "V";
 
-*/
-
-  if (Message_USART != "") {
+  if ((Message_USART != "") && !alarm) {
     message = Central(Bold(Message_USART));
-//    Time_Update_Message = millis();
+    Time_Update_Message = millis();
   }
 
-  if (millis() - time_send > 500) { //Update display
+  if (((millis() - time_send) > 1000) && AUX_mode && ((millis() - Pause_Update_DIS) > 50)) { //Update display
     message_to_DIS(message);
-//    Serial2.println(message);
+    if (Blink) Blink = 0;
+    else Blink = 1;
+    //    Serial2.println(message);
     time_send = millis();
   }
 }
