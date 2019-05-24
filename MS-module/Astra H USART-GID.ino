@@ -135,6 +135,7 @@ String Alarm(bool Sinchro) {
 HardwareCAN canBus(CAN1_BASE);
 CanMsg msg ;
 CanMsg *r_msg;
+#define CAN_RX_QUEUE_SIZE 36  //The size of the incoming message buffer. If there is a loss of incoming packets, you need to increase the value.
 void CANSetup(void)
 {
   CAN_STATUS Stat ;
@@ -313,8 +314,8 @@ void loop() {
     SendCANmessage(0x0248, 8, 0x06, 0xAA, 0x01, 0x01, 0x07, 0x10, 0x11, 0x00);
     time_request_ecc = millis();
   }
-  if (canBus.available() > 0)
-  { r_msg = canBus.recv();
+  if (canBus.available() > 0) //There are unprocessed messages in the queue
+  { r_msg = canBus.recv();    //Get a message from the queue
     switch (r_msg->ID)
     {
       case MS_WHEEL_BUTTONS_ID: {
@@ -418,7 +419,7 @@ void loop() {
     Serial2.print(scan);
 #endif
   }
-  canBus.free();
+  canBus.free(); //The message is processed, delete from the buffer, shift the queue
 
 
   if (T_ENG > 1080) {
