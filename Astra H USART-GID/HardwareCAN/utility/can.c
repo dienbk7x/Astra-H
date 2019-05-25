@@ -574,7 +574,7 @@ uint8 CAN_RX0_IRQ_Handler(void)   //Обработчик прерываний FI
 }
 
 // Addition JMD: the messages stored in fifo1 must also trigger an interrupt.
-void __irq_can_rx1(void) //вызов прерывания CAN_RX0_IRQ_Handler
+void __irq_can_rx1(void) //вызов обработчика прерывания CAN_RX0_IRQ_Handler
 {
 	CAN_RX0_IRQ_Handler() ;
 }
