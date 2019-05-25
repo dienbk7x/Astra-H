@@ -39,12 +39,7 @@ public:
 	{		   
 		return Port->RF0R;
 	}
-/*	
-	uint32 RF1R(void)
-	{
-		return Port->RF1R;
-	}
-*/	
+
 	void set_pool_mode(void);
 	void set_irq_mode(void);
 
@@ -56,11 +51,10 @@ public:
 	CAN_STATUS status(void);
 
 	CAN_TX_MBX send(CanMsg* message);
-	CAN_STATUS send_status(CAN_TX_MBX mbx); //+++++++++++++++++++++++++++
 	void cancel(CAN_TX_MBX mbx);
 
 	uint8 available(void);
-    uint8 frame_lost(void);
+    	uint8 frame_lost(void);
 	
 	CanMsg* recv(void);
 
