@@ -17,9 +17,9 @@ Files are basically for Arduimo IDE, so they are *.ino
 - receive climate data from MS-module and show on odometer (keep in memory)
 - Make "arrows test" (just for fun)
 * Astra H USART-GID:
--Display engine temperature and battery voltage on the display.
--Display of data transmitted in USART2
--High engine temperature alert
+- Display engine temperature and battery voltage on the display.
+- Display of data transmitted in USART2
+- High engine temperature alert
 
 As for libraries, I use lib from stm32duino project with some modification of HardwareCAN library.
 
