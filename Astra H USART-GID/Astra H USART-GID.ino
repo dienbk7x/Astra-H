@@ -132,11 +132,10 @@ String Alarm(bool Sinchro) {
 //FOR CORRECT WORK, IT IS REQUIRED TO INCLUDE CAN_MCR_TXFP In the HardwareCAN.cpp FILE line 26//
 //********************************************************************************************//
 // Instanciation of CAN interface
-#define CAN_RX_QUEUE_SIZE 36
+#define CAN_RX_QUEUE_SIZE 36  //The size of the incoming message buffer. If there is a loss of incoming packets, you need to increase the value.
 HardwareCAN canBus(CAN1_BASE);
 CanMsg msg ;
 CanMsg *r_msg;
-#define CAN_RX_QUEUE_SIZE 36  //The size of the incoming message buffer. If there is a loss of incoming packets, you need to increase the value.
 void CANSetup(void)
 {
   CAN_STATUS Stat ;
