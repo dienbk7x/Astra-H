@@ -52,7 +52,7 @@
 #define PC13ON 0
 #define PC13OFF 1
 #define DELAY 250
-#define DEBUG  //Debug activation will increase the ant of memory by ~16k
+//#define DEBUG  //Debug activation will increase the ant of memory by ~16k
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                         ASTRA H VARIABLES AND FUNCTIONS                             //
