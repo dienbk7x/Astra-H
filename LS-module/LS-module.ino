@@ -36,7 +36,7 @@ enum EcnMode {
 };
 
 long ecnMillis = 0; // size?
-short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
+short ecnWaitTime = 500; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
 uint8 coolantTemp;
