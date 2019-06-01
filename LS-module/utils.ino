@@ -1,4 +1,6 @@
 // ======== GENERAL ==========
+// #define DEBUG
+// #define LOG
 /**
    print out extra messages that are needed for debug only
 */
@@ -88,6 +90,7 @@ void lsCANSetup(void)
    canBus.filter(3, 0x230 << 21, 0xFFFFFFFF) ; // doors and locls
    canBus.filter(4, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(5, 0x500 << 21, 0xFFFFFFFF) ; // voltage
+   canBus.filter(6, 0x108 << 21, 0xFFFFFFFF) ; // speed, taho
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
@@ -181,6 +184,35 @@ void lsShowEcn(uint8 d0, uint8 d1, uint8 d2) {
   log("==>sending message to ECN screen");
   SendCANmessage(0x5e8, 8, 0x81, d0, d1, d2, 0x00, 0x00, 0x00, 0x00);
   log("==sent");
+}
+
+void lsShowEcnDecimal(long value) {
+  uint8 d0 = 0x00;
+  uint8 d1 = 0x00;
+  uint8 d2 = 0x00;
+  if (value >= 10000) { // а можно сделать циклом
+    char d01 = value / 100000; // first digit
+    value -= 100000 * d01;
+    char d02 = value / 10000; // first digit
+    value -= 10000 * d02;
+    d0 = d01*16 + d02;
+  }
+  if (value >= 100) { 
+    char d01 = value / 1000; // first digit
+    value -= 1000 * d01;
+    char d02 = value / 100; // first digit
+    value -= 100 * d02;
+    d1 = d01*16 + d02;
+  }
+  if (value > 0) { 
+    char d01 = value / 10; // first digit
+    value -= 10 * d01;
+    char d02 = value  ; // first digit
+    value -= d02;
+    d2 = d01*16 + d02;
+  }
+  debug("converted to HEX");
+  lsShowEcn(d0, d1, d2);
 }
 
 void playWithEcn() {

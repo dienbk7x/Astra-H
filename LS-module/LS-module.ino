@@ -6,7 +6,7 @@
 /////// === Настройки модуля! === ///////
 
 // Uncomment to enable 'debug()' messages output
-#define DEBUG
+#define DEBUG  //  Please define also in utils.ino!!
 
 // Uncomment to enable 'log()' messages output
 #define LOG
@@ -41,6 +41,7 @@ long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
 uint8 coolantTemp;
 uint8 voltage = 0;
+uint8 speed = 0;
 
 // Flags
 volatile bool flagHandBrake = false;
@@ -56,7 +57,7 @@ void setup()
   delay(DELAY);
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.10 2019-05-16");
+  SERIAL.println("Starting LS-module v1.11 2019-06-01");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
@@ -92,6 +93,15 @@ void loop()
     if (r_msg->ID == 0x100) {
       debug("0x100");
     }// do nothing
+
+    else if (r_msg->ID == 0x108) { // speed + taho
+      speed = (r_msg->Data[1]<<1) + (r_msg->Data[2]>>7);
+      // taho = (r_msg->Data[4]<<8) + (r_msg->Data[5]>>2)
+      if (ECN_SPEED == ecnMode) {
+      debug("speed ", speed);
+      lsShowEcnDecimal(speed);
+      }
+    }
 
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
