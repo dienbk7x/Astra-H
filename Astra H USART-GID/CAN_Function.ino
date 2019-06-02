@@ -22,8 +22,9 @@ void CANSetup(void)
   canBus.filter(2, CAN_FIFO0, 0x548, 0xFFFFFFFF);
   canBus.filter(3, CAN_FIFO1, 0x6C1, 0xFFFFFFFF);
   canBus.set_irq_mode();              // Use irq mode (recommended)
-  nvic_irq_set_priority(NVIC_USB_LP_CAN_RX0,0);
-  nvic_irq_set_priority(NVIC_USART2,1);
+  nvic_irq_set_priority(NVIC_CAN_RX1,0);
+  nvic_irq_set_priority(NVIC_USB_LP_CAN_RX0,1);
+  nvic_irq_set_priority(NVIC_USART2,2);
   Stat = canBus.status();
 #ifdef DEBUG
   if (Stat != CAN_OK) Serial2.print("Initialization failed");
