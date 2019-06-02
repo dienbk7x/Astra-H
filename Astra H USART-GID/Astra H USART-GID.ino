@@ -135,23 +135,19 @@ void loop() {
     SendCANmessage(0x0248, 8, 0x06, 0xAA, 0x01, 0x01, 0x07, 0x10, 0x11, 0x00);
     time_request_ecc = millis();
   }
-  //***************Check CAN message buffer and process message*************************
-  if (canBus.available() > 0)
-  { CAN_message_process(canBus.recv());
-    canBus.free();
-  }
-
   //*******************Generate an engine temperature alarm*****************************
   if (T_ENG > 1080) {
     alarm = 1;
     message = Alarm(Blink);
   }
   else alarm = 0;
-
   //*************************Receiving a message with USART2****************************
-  if ((millis() - Time_USART > 200) && (Serial2.available() > 0) && !alarm) { //delay needed to fillup buffers
-    message = Central(Bold(Data_USART()));
+  if (millis() - Time_USART > 200) {   //delay needed to fillup buffers
+    Message_USART = Data_USART();
     Time_USART = millis();
+  }
+  if ((Message_USART != "") && !alarm) {
+    message = Central(Bold(Message_USART));
     Time_Update_Message = millis();
   }
   //******************************* Parameter display **********************************
@@ -160,6 +156,12 @@ void loop() {
     message += Right(Bold("USB:232/480"));
     Time_Update_Message = millis();  //To return to the main message after receiving a USART message
   }
+    //***************Check CAN message buffer and process message*************************
+  if (canBus.available() > 0)
+  { CAN_message_process(canBus.recv());
+    canBus.free();
+  }
+  
   //******************************* Update display **********************************
   if (((millis() - time_send) > 1000) && AUX_mode && ((millis() - Pause_Update_DIS) > 50)) { //Update display
     message_to_DIS(message);
