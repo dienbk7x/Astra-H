@@ -157,11 +157,10 @@ void loop() {
     Time_Update_Message = millis();  //To return to the main message after receiving a USART message
   }
     //***************Check CAN message buffer and process message*************************
-  if (canBus.available() > 0)
-  { CAN_message_process(canBus.recv());
-    canBus.free();
-  }
-  
+  while(canBus.available() > 0)
+    { CAN_message_process(canBus.recv());
+     canBus.free();
+    }
   //******************************* Update display **********************************
   if (((millis() - time_send) > 1000) && AUX_mode && ((millis() - Pause_Update_DIS) > 50)) { //Update display
     message_to_DIS(message);
