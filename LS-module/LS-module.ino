@@ -31,7 +31,11 @@ enum EcnMode {
   OFF=0, 
   ECN_TEMP_VOLT,
   ECN_SPEED,
-  ECN_DOORS
+  ECN_DOORS,
+  ECN_RETURN,
+  ECN_DOORS_AUTO,
+  ECN_UNDERVOLTAGE,
+  ECN_OVERHEAT
 };
 // enum EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
 // enum EcnMode savedEcnMode = OFF;
@@ -39,7 +43,7 @@ byte ecnMode = OFF; // temporary, must be enum for state-machine
 byte savedEcnMode = OFF;
 
 long ecnMillis = 0; // size?
-short ecnWaitTime = 500; // pause between ecn screen update in mode 1
+short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
 uint8 coolantTemp;
@@ -99,10 +103,10 @@ void loop()
     }// do nothing
 
     else if (r_msg->ID == 0x108) { // speed + taho
-      speed = (r_msg->Data[1]<<1) + (r_msg->Data[2]>>7);
-      // taho = (r_msg->Data[4]<<8) + (r_msg->Data[5]>>2)
+      speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
+      // taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2)
       if (ECN_SPEED == ecnMode) {
-      debug("speed ", speed);
+      debug("speed: ", speed);
       lsShowEcnDecimal(speed);
       }
     }
@@ -118,16 +122,18 @@ void loop()
       
       if ( millis() > btnMillis ) {
         btnMillis = millis() + btnWaitTime;
-      } else break;
+      } else {
+         break;
+      }
 
       debug("Steering wheel buttons");
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
         debug("left knob down");
         ecnMode++; // работает только для int ((
-        debug("mode = ",ecnMode);
+        debug("mode = ", ecnMode);
         log("ECN mode on / +1");
-        delay(100); // bad way to avoid multiple change
+//         delay(100); // bad way to avoid multiple change
         #ifdef DEBUG
         lsBeep(ecnMode);
         #endif
@@ -137,7 +143,7 @@ void loop()
         ecnMode = OFF;
         debug("mode = ",ecnMode);
         log("ECN mode off");
-        lsShowEcn(0x0F, 0xF0, 0xFF); // temp
+        lsShowEcn(0x0F, 0xF0, 0xFF); 
       } else if ( (r_msg->Data[5] == 0x11) && 
                   (r_msg->Data[6] == 0x1F) && 
                   (r_msg->Data[7] == 0x01) ) {
@@ -155,19 +161,20 @@ void loop()
     } else if (r_msg->ID == 0x230) {
       debug("Doors/locks");
       printMsg();
-      // flagDoorsOpen = false; // r_msg->Data[2] | r_msg->Data[3]
+      // flagDoorsOpen = false; // r_msg->Data[2] | r_msg->Data[1]
       if ((r_msg->Data[2]!=0x00) || 
-          (r_msg->Data[3]!=0x00)) {
+          (r_msg->Data[1]!=0x00)) {
         flagDoorsOpen = true;
-        if (ecnMode != ECN_DOORS) {
+        if (ecnMode != ECN_DOORS_AUTO) {
+//     todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
           savedEcnMode = ecnMode;
-          ecnMode = ECN_DOORS;
+          ecnMode = ECN_DOORS_AUTO;
         }
-        lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]);
+        lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[1]);
       } else {
         flagDoorsOpen = false;
-        if (ecnMode == ECN_DOORS) {
-          lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]);
+        if (ecnMode == ECN_DOORS_AUTO) {
+          lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[1]);
           ecnMode = savedEcnMode;
         }
       }
@@ -176,6 +183,7 @@ void loop()
 230   [7]  00 00 40 00 00 00 00 открыта левая дверь
 230   [7]  00 00 10 00 00 00 00 открыта правая дверь
 230   [7]  00 00 50 00 00 00 00 открыты обе двери
+задние пассажирские в data[1]
 */
     
     } else if (r_msg->ID == 0x370) {
@@ -210,8 +218,9 @@ void loop()
   // close while
   // ======== check flags and execute actions =========
   if ((ECN_TEMP_VOLT == ecnMode) && (millis() > ecnMillis)) {
-    debug("(1 == ecnMode) && (millis() > ecnMillis)");
+//     debug("(1 == ecnMode) && (millis() > ecnMillis)");
     debug("Coolant: ", coolantTemp - 40);
+    debug("voltage * 10: ", voltage);
 
     ecnMillis = millis() + ecnWaitTime;
     // process coolant
@@ -236,13 +245,12 @@ void loop()
     d1 += ampl % 10 * 16;
     // d2 += ampl / 10 * 16 + ampl % 10; // to hex but show like dec;
     // lsShowEcn(d0, d1, d2);
-
     // process voltage
     if (voltage < 100) {
-      debug("<10,0");
+//       debug("<10,0");
       d2 = voltage;
     } else {
-      debug(">10,0");
+//       debug(">10,0");
       d1 += 0x01;
       d2 = voltage - 100;
     }
@@ -263,9 +271,11 @@ void loop()
       uint8 toTaho = (voltage>100)?(voltage-100):0;
       tahometer(toTaho);
     }
-  } else if (ECN_DOORS == ecnMode) 
-  {
+  } else if (ECN_DOORS == ecnMode) {
     // lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]);
+  } else if (ECN_RETURN == ecnMode) {
+     ecnMode = OFF; 
+     lsShowEcn(0x0F, 0xF0, 0xFF);
   }
   
 }
