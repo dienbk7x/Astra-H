@@ -27,13 +27,16 @@
 
 /////// === Глобальные переменные === ///////
 /* global variables */
-uint8 ecnMode; // temporary, must be enum for state-machine
 enum EcnMode {
   OFF=0, 
   ECN_TEMP_VOLT,
   ECN_SPEED,
   ECN_DOORS
 };
+// enum EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
+// enum EcnMode savedEcnMode = OFF;
+byte ecnMode = OFF; // temporary, must be enum for state-machine
+byte savedEcnMode = OFF;
 
 long ecnMillis = 0; // size?
 short ecnWaitTime = 500; // pause between ecn screen update in mode 1
@@ -45,6 +48,7 @@ uint8 speed = 0;
 
 // Flags
 volatile bool flagHandBrake = false;
+volatile bool flagDoorsOpen = false;
 volatile bool flag;
 
 // Instanciation of CAN interface
@@ -65,7 +69,7 @@ void setup()
   delay(DELAY);
 
   debug("Setting globals");
-  ecnMode = 1;
+  ecnMode = ECN_TEMP_VOLT;
   coolantTemp = 40;
 
   pinMode(PC13, OUTPUT); // LED is ON until end of setup()
@@ -120,7 +124,7 @@ void loop()
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
         debug("left knob down");
-        ecnMode++;
+        ecnMode++; // работает только для int ((
         debug("mode = ",ecnMode);
         log("ECN mode on / +1");
         delay(100); // bad way to avoid multiple change
@@ -130,7 +134,7 @@ void loop()
       } else if ( (r_msg->Data[5] == 0x10) && 
                   (r_msg->Data[6] == 0x1F) ) {
         debug("left knob up");
-        ecnMode = 0;
+        ecnMode = OFF;
         debug("mode = ",ecnMode);
         log("ECN mode off");
         lsShowEcn(0x0F, 0xF0, 0xFF); // temp
@@ -151,7 +155,28 @@ void loop()
     } else if (r_msg->ID == 0x230) {
       debug("Doors/locks");
       printMsg();
+      // flagDoorsOpen = false; // r_msg->Data[2] | r_msg->Data[3]
+      if ((r_msg->Data[2]!=0x00) || 
+          (r_msg->Data[3]!=0x00)) {
+        flagDoorsOpen = true;
+        if (ecnMode != ECN_DOORS) {
+          savedEcnMode = ecnMode;
+          ecnMode = ECN_DOORS;
+        }
+        lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]);
+      } else {
+        flagDoorsOpen = false;
+        if (ecnMode == ECN_DOORS) {
+          lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]);
+          ecnMode = savedEcnMode;
+        }
+      }
 
+/*
+230   [7]  00 00 40 00 00 00 00 открыта левая дверь
+230   [7]  00 00 10 00 00 00 00 открыта правая дверь
+230   [7]  00 00 50 00 00 00 00 открыты обе двери
+*/
     
     } else if (r_msg->ID == 0x370) {
       debug("handbrake, fog lights, etc...");
@@ -238,6 +263,10 @@ void loop()
       uint8 toTaho = (voltage>100)?(voltage-100):0;
       tahometer(toTaho);
     }
+  } else if (ECN_DOORS == ecnMode) 
+  {
+    // lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]);
   }
+  
 }
 // close void loop
