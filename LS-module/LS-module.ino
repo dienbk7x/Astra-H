@@ -3,19 +3,22 @@
 */
 #include <HardwareCAN.h>
 
-#define __VERSION 1.12
-#define __DATE 2019-06-04_nightly
+#define __VERSION 1.13
+#define __DATE 2019-06-11_nightly
 
 /////// === Настройки модуля! === ///////
 
 // Uncomment to enable 'debug()' messages output
-#define DEBUG  //  Please define also in utils.ino!!
+#define DEBUG
 
 // Uncomment to enable 'log()' messages output
 #define LOG
 
 // Choose output serial port
 #define SERIAL Serial2
+
+// Set timeout for sending CAN messages
+#define CAN_SEND_TIMEOUT 200
 
 // Choose CAN pins for each bus to enable dual
 #define CAN_GPIO_PINS_MS CAN_GPIO_PA11_PA12
@@ -50,19 +53,20 @@ long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
-uint8 coolantTemp;
-uint8 voltage = 0;
-uint8 speed = 0;
+int coolantTemp;
+int voltage = 0;
+uint8 speed = 0; // up to 256
+int taho = 0;
 
 // Flags
-volatile bool flagHandBrake = false;
-volatile bool flagDoorsOpen = false;
-volatile bool flagButtonPressed = false;
-volatile bool flag;
+volatile bool flagHandBrake = false; // флаг обнаружения поднятого ручника
+volatile bool flagDoorsOpen = false; // флаг обнаружения открытой двери
+volatile bool flagButtonPressed = false; // флаг для однократной обработки нажатия бобышки при переключении режима
+//volatile bool flagDoorsAcknowledged = false; // флаг квитирования режима двери авто
+volatile bool flag;  // флаг заготовка
 
 // Instanciation of CAN interface
 HardwareCAN canBus(CAN1_BASE);
-CanMsg msg ;
 CanMsg *r_msg;
 
 void setup()
@@ -90,6 +94,7 @@ void setup()
   log("Initialization LS CAN ON");
   wakeUpBus();
   lsBeep(2);
+  delay(1000); // time to start engine
   panelCheck();
   // playWithEcn();
 
@@ -109,10 +114,24 @@ void loop()
 
     else if (r_msg->ID == 0x108) { // speed + taho
       speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
-      // taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2)
+      taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
+      // 90 === 900rpm
       if (ECN_SPEED == ecnMode) {
-      debug("speed: ", speed);
-      lsShowEcnDecimal(speed);
+        // gear factor. TODO: log and count gear
+        uint8 gear = (speed * 10) / (taho/100); // 80*10 / 3000/100
+        debug("speed: ", speed);
+        debug("taho: ", taho);
+        debug("gear factor:", gear);
+        #ifdef DEBUG
+            SERIAL.print("gear;");
+            SERIAL.print(millis());
+            SERIAL.print(";");
+            SERIAL.print(taho);
+            SERIAL.print(";");
+            SERIAL.print(speed);
+            SERIAL.println(";");
+        #endif
+        lsShowEcnDecimal(gear, speed); // experimental! needs to be checked
       }
     }
 
