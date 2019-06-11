@@ -1,4 +1,6 @@
 // ======== GENERAL ==========
+// #define DEBUG
+// #define LOG
 /**
    print out extra messages that are needed for debug only
 */
@@ -88,6 +90,7 @@ void lsCANSetup(void)
    canBus.filter(3, 0x230 << 21, 0xFFFFFFFF) ; // doors and locls
    canBus.filter(4, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(5, 0x500 << 21, 0xFFFFFFFF) ; // voltage
+   canBus.filter(6, 0x108 << 21, 0xFFFFFFFF) ; // speed, taho
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
@@ -181,6 +184,35 @@ void lsShowEcn(uint8 d0, uint8 d1, uint8 d2) {
   log("==>sending message to ECN screen");
   SendCANmessage(0x5e8, 8, 0x81, d0, d1, d2, 0x00, 0x00, 0x00, 0x00);
   log("==sent");
+}
+
+void lsShowEcnDecimal(long value) {
+  uint8 d0 = 0x00;
+  uint8 d1 = 0x00;
+  uint8 d2 = 0x00;
+  if (value >= 10000) { // а можно сделать циклом
+    char d01 = value / 100000; // first digit
+    value -= 100000 * d01;
+    char d02 = value / 10000; // first digit
+    value -= 10000 * d02;
+    d0 = d01*16 + d02;
+  }
+  if (value >= 100) { 
+    char d01 = value / 1000; // first digit
+    value -= 1000 * d01;
+    char d02 = value / 100; // first digit
+    value -= 100 * d02;
+    d1 = d01*16 + d02;
+  }
+  if (value > 0) { 
+    char d01 = value / 10; // first digit
+    value -= 10 * d01;
+    char d02 = value  ; // first digit
+    value -= d02;
+    d2 = d01*16 + d02;
+  }
+  debug("converted to HEX");
+  lsShowEcn(d0, d1, d2);
 }
 
 void playWithEcn() {
@@ -301,8 +333,8 @@ void lsDoThanks(){
 
 void lsDoStrob(){
   debug("lsDoStrob  -  To be done");
-  for (int i=0; i<3; i++){
-    
+  for (int i=0; i<2; i++){
+  lsShowEcn(0xd8, 0xbd, 0x8b);  
   lsBeep();
   // зажечь
   SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x02, 0x00, 0x00, 0x00);
@@ -316,7 +348,7 @@ void lsDoStrob(){
   // погасить
   SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00);
   delay(100);
-  // ??
+  // индикатор дальнего
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00);
   delay(300);
 
@@ -332,14 +364,51 @@ void lsDoStrob(){
   // погасить
   SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x00, 0x00, 0x00, 0x00);
   delay(100);
-  // ??
+  // индикатор дальнего
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x04, 0x00, 0x00, 0x00);
   delay(300);
   }
 
 }
-#endif
+// == на будущее
+// 251#04.AE.03.04.04.00.00.00 открытие багажника
+void lsOpenRearDoor(){
+  SendCANmessage(0x251, 8, 0x04, 0xAE, 0x03, 0x04, 0x04, 0x00, 0x00, 0x00);
+}
 
+/* заметки
+LS CAN
+305   [7]  00 00 40 00 10 40 00 включеные габаритов
+305   [7]  00 00 C0 00 10 40 00 включен ближний
+305   [7]  00 00 00 00 3A 41 00 включен sport-режим
+
+350   [4]  06 02 00 00 птф выключены 
+350   [4]  26 02 00 00 передние птф включены
+
+230   [7]  00 00 40 00 00 00 00 открыта левая дверь
+230   [7]  00 00 10 00 00 00 00 открыта правая дверь
+230   [7]  00 00 50 00 00 00 00 открыты обе двери
+230   [7]  00 40 00 00 00 00 00 открыта левая задняя дверь
+230   [7]  00 10 00 00 00 00 00 открыта правая задняя дверь
+230   [7]  00 50 00 00 00 00 00 открыты обе задние двери
+230   [7]  00 00 04 00 00 00 00 открыт багажник
+
+230   [7]  05 00 00 00 00 09 00 двери заперты
+
+11A   [7]  01 11 81 08 01 00 00 - первая передача
+11A   [7]  02 11 82 08 01 00 00 - вторая передача
+11A   [7]  03 11 83 08 01 00 00 - третья передача
+11A   [7]  0B 11 8B 08 01 00 00 - D1
+11A   [7]  0B 31 8B 18 01 00 00 - D3 (при включенном зимнем режиме)
+11A   [7]  09 91 89 68 01 00 00 - нейтралка
+11A   [7]  08 81 80 70 01 00 00 - задняя
+11A   [7]  0A A1 8A 78 01 00 00 - паркинг
+
+145   [8]  04 01 18 8F E0 04 00 00 - зимний режим включен
+145   [8]  00 01 18 8F E0 04 00 00 - зимний режим выключен
+*/
+
+#endif
 // ======== MS CAN ==========
 #ifdef CAN_GPIO_PINS_MS
 void msAcTrigger()

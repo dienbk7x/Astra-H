@@ -3,10 +3,13 @@
 */
 #include <HardwareCAN.h>
 
+#define __VERSION 1.12
+#define __DATE 2019-06-04_nightly
+
 /////// === Настройки модуля! === ///////
 
 // Uncomment to enable 'debug()' messages output
-#define DEBUG
+#define DEBUG  //  Please define also in utils.ino!!
 
 // Uncomment to enable 'log()' messages output
 #define LOG
@@ -27,23 +30,34 @@
 
 /////// === Глобальные переменные === ///////
 /* global variables */
-uint8 ecnMode; // temporary, must be enum for state-machine
 enum EcnMode {
   OFF=0, 
-  ECN_TEMP_VOLT,
-  ECN_SPEED,
-  ECN_DOORS
+  ECN_TEMP_VOLT,      // температура и напряжение 
+  ECN_SPEED,          // точная скорость
+  ECN_DOORS,          // мониторинг дверей 
+  ECN_RETURN,         // крайний режим для возврата в ноль
+  ECN_DOORS_AUTO,     // открытые двери (с возвратом в предыдущий режим)
+  ECN_UNDERVOLTAGE,   // для низкого напряжения
+  ECN_OVERHEAT,       // для перегрева
+  ECN_STROBS          // для стробов ?
 };
+// enum EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
+// enum EcnMode savedEcnMode = OFF;
+byte ecnMode = OFF; // temporary, must be enum for state-machine
+byte savedEcnMode = OFF;
 
 long ecnMillis = 0; // size?
-short ecnWaitTime = 1000; // pause between ecn screen update in mode 1
+short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
 uint8 coolantTemp;
 uint8 voltage = 0;
+uint8 speed = 0;
 
 // Flags
 volatile bool flagHandBrake = false;
+volatile bool flagDoorsOpen = false;
+volatile bool flagButtonPressed = false;
 volatile bool flag;
 
 // Instanciation of CAN interface
@@ -56,7 +70,7 @@ void setup()
   delay(DELAY);
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v1.10 2019-05-16");
+  SERIAL.println("Starting LS-module v __VERSION __DATE");
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
@@ -64,7 +78,7 @@ void setup()
   delay(DELAY);
 
   debug("Setting globals");
-  ecnMode = 1;
+  ecnMode = ECN_TEMP_VOLT;
   coolantTemp = 40;
 
   pinMode(PC13, OUTPUT); // LED is ON until end of setup()
@@ -93,6 +107,33 @@ void loop()
       debug("0x100");
     }// do nothing
 
+    else if (r_msg->ID == 0x108) { // speed + taho
+      speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
+      // taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2)
+      if (ECN_SPEED == ecnMode) {
+      debug("speed: ", speed);
+      lsShowEcnDecimal(speed);
+      }
+    }
+
+    else if (r_msg->ID == 0x135) { // open/close locks
+    /*
+    кнопку нажал (закрыть!)	  135	BC	00	FD	70
+    кнопку отпустил	          135	3C	00	FD	70
+    кнопку нажал (открыть!)		135	7C	00	FD	70
+    кнопку отпустил	        	135	3C	00	FD	70
+    открыть с ключа 	        135	7C	06	FD	70
+    открыть с ключа 	        135	3C	06	FD	70
+                                  |    |   \___\___ID ключа??
+                                  |   06= с брелка
+                                  |   00= с кнопки в кабине
+                                  BC = нажать закрыть
+                                  7C = нажать открыть
+                                  3C = отпустить
+    */
+  //  todo закрытие стекол по троекратному нажатию закрывания.
+    }
+
     else if (r_msg->ID == 0x145) { // engine tempr
       debug("engine tempr");
       if (ECN_TEMP_VOLT == ecnMode) {
@@ -101,47 +142,97 @@ void loop()
       }
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
-      
+      /*
       if ( millis() > btnMillis ) {
         btnMillis = millis() + btnWaitTime;
-      } else break;
-
+      } else {
+         break;
+      }
+      */
       debug("Steering wheel buttons");
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
         debug("left knob down");
-        ecnMode++;
-        debug("mode = ",ecnMode);
+        if (flagButtonPressed) {
+        // ничего не делаем до отпускания
+        } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
+          ecnMode++; // работает только для int ((
+          flagButtonPressed = true;
+        }
+        debug("mode = ", ecnMode);
         log("ECN mode on / +1");
-        delay(100); // bad way to avoid multiple change
+//         delay(100); // bad way to avoid multiple change
         #ifdef DEBUG
         lsBeep(ecnMode);
         #endif
+
       } else if ( (r_msg->Data[5] == 0x10) && 
                   (r_msg->Data[6] == 0x1F) ) {
         debug("left knob up");
-        ecnMode = 0;
+        ecnMode = OFF;
         debug("mode = ",ecnMode);
         log("ECN mode off");
-        lsShowEcn(0x0F, 0xF0, 0xFF); // temp
+        lsShowEcn(0x0F, 0xF0, 0xFF); 
       } else if ( (r_msg->Data[5] == 0x11) && 
                   (r_msg->Data[6] == 0x1F) && 
                   (r_msg->Data[7] == 0x01) ) {
         debug("both knobs up");
         lsDoThanks();
-      }
+      } 
 
       if ( (r_msg->Data[5] == 0x10) && 
            (r_msg->Data[6] == 0x1F) &&
            (r_msg->Data[0] == 0x08)) {
         debug("left knob up + lights pull");
-        lsDoStrob();
-      }  
+        ecnMode = ECN_STROBS;
+      } 
+
+      if (r_msg->Data[5] == 0x00) {
+        flagButtonPressed = false;
+      }
 
     } else if (r_msg->ID == 0x230) {
       debug("Doors/locks");
       printMsg();
+      // test !!
+      if ((r_msg->Data[2]) || (r_msg->Data[1])) {
+            debug("test successfull!! use \"if (r_msg->Data[2])\"  ");
+          }
+      // flagDoorsOpen = false; // r_msg->Data[2] | r_msg->Data[1]
+      if (ECN_DOORS == ecnMode){ // режим дверей? тогда выводим
+        // записать и отобразить 
+        uint8 d0 = 0xd0; // d + front left
+        uint8 d1 = 0x00; // rear left + bagage
+        uint8 d2 = 0x00; // rear right + front right
+        if (r_msg->Data[2] & 0x40) {d0 += 0x0F;}  // dF0000
+        if (r_msg->Data[2] & 0x10) {d2 += 0x0F;}  // d0000F
+        if (r_msg->Data[2] & 0x04) {d1 += 0x0A;}  // d00A00
+        if (r_msg->Data[1] & 0x40) {d1 += 0xb0;}  // d0b000
+        if (r_msg->Data[1] & 0x10) {d2 += 0xb0;}  // d000b0
+        lsShowEcn(d0, d1, d2);
+      } else if ((r_msg->Data[2]!=0x00) || 
+          (r_msg->Data[1]!=0x00)) { // другой режим -- тогда при открытых переключаем на авто
+        flagDoorsOpen = true;
+        if (ecnMode != ECN_DOORS_AUTO) {
+//     todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
+          savedEcnMode = ecnMode;
+          ecnMode = ECN_DOORS_AUTO;
+        }
+        lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[1]); /// пока по-старому, для проверки
+      } else {
+        flagDoorsOpen = false;
+        if (ecnMode == ECN_DOORS_AUTO) {
+          lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[1]);
+          ecnMode = savedEcnMode;
+        }
+      }
 
+/*
+230   [7]  00 00 40 00 00 00 00 открыта левая дверь
+230   [7]  00 00 10 00 00 00 00 открыта правая дверь
+230   [7]  00 00 50 00 00 00 00 открыты обе двери
+задние пассажирские в data[1]
+*/
     
     } else if (r_msg->ID == 0x370) {
       debug("handbrake, fog lights, etc...");
@@ -175,8 +266,9 @@ void loop()
   // close while
   // ======== check flags and execute actions =========
   if ((ECN_TEMP_VOLT == ecnMode) && (millis() > ecnMillis)) {
-    debug("(1 == ecnMode) && (millis() > ecnMillis)");
+//     debug("(1 == ecnMode) && (millis() > ecnMillis)");
     debug("Coolant: ", coolantTemp - 40);
+    debug("voltage * 10: ", voltage);
 
     ecnMillis = millis() + ecnWaitTime;
     // process coolant
@@ -201,13 +293,12 @@ void loop()
     d1 += ampl % 10 * 16;
     // d2 += ampl / 10 * 16 + ampl % 10; // to hex but show like dec;
     // lsShowEcn(d0, d1, d2);
-
     // process voltage
     if (voltage < 100) {
-      debug("<10,0");
+//       debug("<10,0");
       d2 = voltage;
     } else {
-      debug(">10,0");
+//       debug(">10,0");
       d1 += 0x01;
       d2 = voltage - 100;
     }
@@ -228,6 +319,14 @@ void loop()
       uint8 toTaho = (voltage>100)?(voltage-100):0;
       tahometer(toTaho);
     }
+  } else if (ECN_DOORS == ecnMode) {
+    // lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]); // уже выводится сразу же
+  } else if (ECN_RETURN == ecnMode) {
+    ecnMode = OFF; 
+    lsShowEcn(0x0F, 0xF0, 0xFF);
+  } else if (ECN_STROBS == ecnMode) {
+    lsDoStrob();
   }
+  
 }
 // close void loop
