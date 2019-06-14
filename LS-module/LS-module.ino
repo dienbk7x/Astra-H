@@ -177,23 +177,20 @@ void loop()
         }
 
       } else if ( (r_msg->Data[5] == 0x10) && 
-                  (r_msg->Data[6] == 0x1F) ) {
-        debug("left knob up");
+                  (r_msg->Data[6] == 0x1F) ) {  //   left knob up
+//        if (OFF != ecnMode) {savedEcnMode = ecnMode;}
         ecnMode = OFF;
-        debug("mode = ",ecnMode);
         log("ECN mode off");
         lsShowEcn(0x0F, 0xF0, 0xFF); 
       } else if ( (r_msg->Data[5] == 0x11) && 
                   (r_msg->Data[6] == 0x1F) && 
-                  (r_msg->Data[7] == 0x01) ) {
-        debug("both knobs up");
+                  (r_msg->Data[7] == 0x01) ) {  // both knobs up
         lsDoThanks();
       } 
 
       if ( (r_msg->Data[5] == 0x10) && 
            (r_msg->Data[6] == 0x1F) &&
-           (r_msg->Data[0] == 0x08)) {
-        debug("left knob up + lights pull");
+           (r_msg->Data[0] == 0x08)) {  // left knob up + lights pull
         ecnMode = ECN_STROBS;
       } 
 
@@ -202,37 +199,30 @@ void loop()
       }
 
     } else if (r_msg->ID == 0x230) {
-      debug("Doors/locks");
-      printMsg();
-      // test !!
-      if ((r_msg->Data[2]) || (r_msg->Data[1])) {
-            debug("test successfull!! use \"if (r_msg->Data[2])\"  ");
-          }
-      // flagDoorsOpen = false; // r_msg->Data[2] | r_msg->Data[1]
-      if (ECN_DOORS == ecnMode){ // режим дверей? тогда выводим
-        // записать и отобразить 
-        uint8 d0 = 0xd0; // d + front left
+
+      if ( (ECN_DOORS == ecnMode) || (ecnMode == ECN_DOORS_AUTO) ) { // режим дверей? тогда выводим
+        // todo insert timeout?
+        // записать и отобразить // todo extract method
+        uint8 d0 = 0x40; // 1 + front left
         uint8 d1 = 0x00; // rear left + bagage
         uint8 d2 = 0x00; // rear right + front right
-        if (r_msg->Data[2] & 0x40) {d0 += 0x0F;}  // dF0000
-        if (r_msg->Data[2] & 0x10) {d2 += 0x0F;}  // d0000F
-        if (r_msg->Data[2] & 0x04) {d1 += 0x0A;}  // d00A00
-        if (r_msg->Data[1] & 0x40) {d1 += 0xb0;}  // d0b000
-        if (r_msg->Data[1] & 0x10) {d2 += 0xb0;}  // d000b0
+        if (r_msg->Data[2] & 0x40) {d0 += 0x0F;}  // 1F0000
+        if (r_msg->Data[2] & 0x10) {d2 += 0x0F;}  // 10000F
+        if (r_msg->Data[2] & 0x04) {d1 += 0x0A;}  // 100A00
+        if (r_msg->Data[1] & 0x40) {d1 += 0xb0;}  // 10b000
+        if (r_msg->Data[1] & 0x10) {d2 += 0xb0;}  // 1000b0
         lsShowEcn(d0, d1, d2);
-      } else if ((r_msg->Data[2]!=0x00) || 
-          (r_msg->Data[1]!=0x00)) { // другой режим -- тогда при открытых переключаем на авто
-        flagDoorsOpen = true;
-        if (ecnMode != ECN_DOORS_AUTO) {
-//     todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
+      } else { // другой режим -- тогда при открытых переключаем на авто
+//        todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
           savedEcnMode = ecnMode;
           ecnMode = ECN_DOORS_AUTO;
-        }
-        lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[1]); /// пока по-старому, для проверки
-      } else {
-        flagDoorsOpen = false;
+      }
+
+      if ( (r_msg->Data[2]) || (r_msg->Data[1]) ) { // не нули - двери открыты
+//        flagDoorsOpen = true;
+      } else { // нули - двери закрыты
+//        flagDoorsOpen = false;
         if (ecnMode == ECN_DOORS_AUTO) {
-          lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[1]);
           ecnMode = savedEcnMode;
         }
       }
