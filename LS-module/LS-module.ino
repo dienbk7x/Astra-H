@@ -154,20 +154,12 @@ void loop()
     }
 
     else if (r_msg->ID == 0x145) { // engine tempr
-      debug("engine tempr");
       if (ECN_TEMP_VOLT == ecnMode) {
         debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
-      /*
-      if ( millis() > btnMillis ) {
-        btnMillis = millis() + btnWaitTime;
-      } else {
-         break;
-      }
-      */
       debug("Steering wheel buttons");
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
@@ -177,13 +169,12 @@ void loop()
         } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
           ecnMode++; // работает только для int ((
           flagButtonPressed = true;
+          debug("mode = ", ecnMode);
+          log("ECN mode on / +1");
+          #ifdef DEBUG
+          lsBeep(ecnMode);
+          #endif
         }
-        debug("mode = ", ecnMode);
-        log("ECN mode on / +1");
-//         delay(100); // bad way to avoid multiple change
-        #ifdef DEBUG
-        lsBeep(ecnMode);
-        #endif
 
       } else if ( (r_msg->Data[5] == 0x10) && 
                   (r_msg->Data[6] == 0x1F) ) {
