@@ -102,22 +102,6 @@ void lsCANSetup(void)
   }
 }
 
-CAN_TX_MBX CANsend(CanMsg *pmsg) // Should be moved to the library?!
-{
-  CAN_TX_MBX mbx;
-  // char count = 0;
-  do
-  {
-    mbx = canBus.send(pmsg) ;
-    // if (count++ > 64) {
-    // log("64 tries failed. No mailbox accessible");
-    // break;
-    // };
-  }
-  while (mbx == CAN_TX_NO_MBX) ;      // Waiting outbound frames will eventually be sent, unless there is a CAN bus failure.
-  return mbx ;
-}
-
 /**
    Print out received message to SERIAL out
 */
@@ -149,10 +133,11 @@ void printMsg(void) {
 }
 
 /**
-   Send message
+ * Send message
+ * optimized by https://github.com/Gegerd
 */
 void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 = 0x00, byte d2 = 0x00, byte d3 = 0x00, byte d4 = 0x00, byte d5 = 0x00, byte d6 = 0x00, byte d7 = 0x00)
-{
+{ CanMsg msg ;
   msg.IDE = CAN_ID_STD;
   msg.RTR = CAN_RTR_DATA;
   msg.ID = id ;
@@ -165,7 +150,21 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
   msg.Data[5] = d5 ;
   msg.Data[6] = d6 ;
   msg.Data[7] = d7 ;
-  CANsend(&msg) ;      // Send this frame
+  uint32_t time = millis();
+  CAN_TX_MBX MBX;
+  do    {
+    MBX = canBus.send(&msg);
+  }
+  while ((MBX == CAN_TX_NO_MBX) && ((millis() - time) < CAN_SEND_TIMEOUT)) ;
+  if ((millis() - time) >= CAN_SEND_TIMEOUT) {
+    canBus.cancel(CAN_TX_MBX0);
+    canBus.cancel(CAN_TX_MBX1);
+    canBus.cancel(CAN_TX_MBX2);
+    #ifdef DEBUG
+    SERIAL.print("CAN-Bus send error");
+    #endif
+  }
+  // Send this frame
 }
 
 void wakeUpBus() {
@@ -181,12 +180,16 @@ void wakeUpBus() {
    три двухзначных числа
 */
 void lsShowEcn(uint8 d0, uint8 d1, uint8 d2) {
-  log("==>sending message to ECN screen");
+//  log("==>sending message to ECN screen");
   SendCANmessage(0x5e8, 8, 0x81, d0, d1, d2, 0x00, 0x00, 0x00, 0x00);
-  log("==sent");
+//  log("==sent");
 }
 
-void lsShowEcnDecimal(long value) {
+/**
+ * Show one value (000000 -- 399999)
+ *                           ^?
+ */
+void lsShowEcnDecimal(long value) { // Show one value
   uint8 d0 = 0x00;
   uint8 d1 = 0x00;
   uint8 d2 = 0x00;
@@ -195,23 +198,79 @@ void lsShowEcnDecimal(long value) {
     value -= 100000 * d01;
     char d02 = value / 10000; // first digit
     value -= 10000 * d02;
-    d0 = d01*16 + d02;
+    d0 = d01*0x10 + d02;
   }
   if (value >= 100) { 
     char d01 = value / 1000; // first digit
     value -= 1000 * d01;
     char d02 = value / 100; // first digit
     value -= 100 * d02;
-    d1 = d01*16 + d02;
+    d1 = d01*0x10 + d02;
   }
   if (value > 0) { 
     char d01 = value / 10; // first digit
     value -= 10 * d01;
     char d02 = value  ; // first digit
     value -= d02;
-    d2 = d01*16 + d02;
+    d2 = d01*0x10 + d02;
   }
-  debug("converted to HEX");
+  // debug("converted to HEX");
+  lsShowEcn(d0, d1, d2);
+}
+
+/**
+ * Show two values (000, 000 -- 399, 999)
+ *                              ^?
+ */
+void lsShowEcnDecimal(long value1, long value2) { // Show two values (3 digits each)
+  uint8 d0 = 0x00;
+  uint8 d1 = 0x00;
+  uint8 d2 = 0x00;
+
+  /************ value2 ************/
+  if (value2 > 999) { // too big
+    d1 += 0x0E;   // ... E..
+    while (value2>100){
+      value2 -=100;
+    }
+  } else if (value2 >= 100) {
+    char d01 = value2 / 100; // first digit
+    value2 -= 100 * d01;
+
+    d1 += d01;   // ... 1..
+  }
+
+  if (value2 > 0) {
+    char d01 = value2 / 10; // first digit
+    value2 -= 10 * d01;
+    char d02 = value2  ; // first digit
+    value2 -= d02;
+
+    d2 = d01*0x10 + d02;   // ... .12
+  }
+
+  /************ value1 ************/
+  if (value1 > 399) { // too big
+    d0 = 0x0E; // 0E. ...
+    d1+= 0xE0; // ..E ...
+
+  } else {
+    if (value1 >= 100) {
+      char d01 = value1 / 100; // first digit
+      value1 -= 100 * d01;
+
+      d0 += d01 * 0x10; // 1.. ...
+    }
+    if (value1 > 0) {
+      char d01 = value1 / 10; // first digit
+      value1 -= 10 * d01;
+      char d02 = value1  ; // second digit
+
+      d0 += d01;  // .1. ...
+      d1 += d02*0x10; // ..2 ...
+    }
+  }
+//  debug("converted to HEX");
   lsShowEcn(d0, d1, d2);
 }
 
@@ -245,13 +304,13 @@ void playWithEcn() {
 void panelCheck() {
   // todo нехватает еще одной стрелки!!!
   log("==>making panelCheck!");
-  delay(300);
+  // delay(300);
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x06, 0x01, 0x8A, 0x00, 0x00, 0x00); // speed
   delay(50);
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, 0x7F, 0x00, 0x00, 0x00); // tacho
   delay(50);
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x08, 0x01, 0xFF, 0x00, 0x00, 0x00); // fuel
-  delay(1500);
+  delay(900);
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x06, 0x01, 0x00, 0x00, 0x00, 0x00);
   delay(50);
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, 0x00, 0x00, 0x00, 0x00);
@@ -332,10 +391,10 @@ void lsDoThanks(){
 }
 
 void lsDoStrob(){
-  debug("lsDoStrob  -  To be done");
+  debug("lsDoStrob. To turn off press knob down");
   for (int i=0; i<2; i++){
   lsShowEcn(0xd8, 0xbd, 0x8b);  
-  lsBeep();
+  lsBeep(0x08, 0x02, 0x20);
   // зажечь
   SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x02, 0x00, 0x00, 0x00);
   delay(100);
