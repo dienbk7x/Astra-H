@@ -3,8 +3,8 @@
 */
 #include <HardwareCAN.h>
 
-#define __VERSION 1.13
-#define __DATE 2019-06-11_nightly
+#define __VERSION 1.14
+#define __DATE 2019-06-14
 
 /////// === Настройки модуля! === ///////
 
@@ -109,7 +109,7 @@ void loop()
   {
     ///// processing the incoming message
     if (r_msg->ID == 0x100) {
-      debug("0x100");
+      // debug("0x100");
     }// do nothing
 
     else if (r_msg->ID == 0x108) { // speed + taho
@@ -155,15 +155,15 @@ void loop()
 
     else if (r_msg->ID == 0x145) { // engine tempr
       if (ECN_TEMP_VOLT == ecnMode) {
-        debug("mode = ", ecnMode);
+        // debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
-      debug("Steering wheel buttons");
+      // debug("Steering wheel buttons");
       if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
         //       left knob down
-        debug("left knob down");
+        // debug("left knob down");
         if (flagButtonPressed) {
         // ничего не делаем до отпускания
         } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
@@ -235,7 +235,7 @@ void loop()
 */
     
     } else if (r_msg->ID == 0x370) {
-      debug("handbrake, fog lights, etc...");
+      // debug("handbrake, fog lights, etc...");
       if ((r_msg->Data[1]) & 0x01) {
         if (!flagHandBrake) {
           log("handbrake was DOWN, now UP");
@@ -249,10 +249,10 @@ void loop()
       }
 
     } else if (r_msg->ID == 0x500) { // voltage
-      debug("voltage");
+      // debug("voltage");
       if (ECN_TEMP_VOLT== ecnMode) {
         voltage = r_msg->Data[1]+28;
-        debug("read voltage");
+        // debug("read voltage");
       }
       //========================
       //    } else if (r_msg->ID == 0x) {
@@ -312,10 +312,10 @@ void loop()
       } else {
         tempToSpeed = coolantTemp - 40;
       }
-      debug("calculate tempToSpeed:", tempToSpeed);
+      // debug("calculate tempToSpeed:", tempToSpeed);
       speedometer(tempToSpeed);
 
-      debug("voltage-100 to tahometer");
+      // debug("voltage-100 to tahometer");
       uint8 toTaho = (voltage>100)?(voltage-100):0;
       tahometer(toTaho);
     }

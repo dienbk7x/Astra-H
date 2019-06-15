@@ -214,7 +214,7 @@ void lsShowEcnDecimal(long value) { // Show one value
     value -= d02;
     d2 = d01*0x10 + d02;
   }
-  debug("converted to HEX");
+  // debug("converted to HEX");
   lsShowEcn(d0, d1, d2);
 }
 
