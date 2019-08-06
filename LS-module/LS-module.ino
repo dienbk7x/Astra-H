@@ -69,6 +69,9 @@ long dtSpeed400 = 0;
 
 int taho = 0;
 
+byte pressCloseCount = 0;
+long pressCloseMillis = 0;
+
 // Flags
 volatile bool flagHandBrake = false; // флаг обнаружения поднятого ручника
 volatile bool flagDoorsOpen = false; // флаг обнаружения открытой двери
@@ -216,12 +219,12 @@ void loop()
 
     } else if (r_msg->ID == 0x135) { // open/close locks
     /*
-    кнопку нажал (закрыть!)	  135	BC	00	FD	70
-    кнопку отпустил	          135	3C	00	FD	70
-    кнопку нажал (открыть!)		135	7C	00	FD	70
-    кнопку отпустил	        	135	3C	00	FD	70
-    открыть с ключа 	        135	7C	06	FD	70
-    открыть с ключа 	        135	3C	06	FD	70
+    кнопку нажал (закрыть!)   135 BC  00  FD  70
+    кнопку отпустил	          135 3C  00  FD  70
+    кнопку нажал (открыть!)   135 7C  00  FD  70
+    кнопку отпустил	          135 3C  00  FD  70
+    открыть с ключа 	      135 7C  06  FD  70
+    открыть с ключа 	      135 3C  06  FD  70
                                   |    |   \___\___ID ключа??
                                   |   06= с брелка
                                   |   00= с кнопки в кабине
@@ -229,13 +232,29 @@ void loop()
                                   7C = нажать открыть
                                   3C = отпустить
     */
-  //  todo закрытие стекол по троекратному нажатию закрывания.
-    }
 
-    else if (r_msg->ID == 0x145) { // engine tempr
+    } else if (r_msg->ID == 0x145) { // engine tempr
       if (ECN_TEMP_VOLT == ecnMode) {
         // debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
+      }
+
+    // закрытие стекол по троекратному нажатию закрывания.
+    } else if (r_msg->ID == 0x160) { // open/close from distance
+#ifdef DEBUG
+printMsg();
+#endif
+      if ( (r_msg->Data[1]==0x40) || (r_msg->Data[1]==0x80) ) { // press close
+        if ((millis() - pressCloseCountMillis) < 2000 ) {
+          pressCloseCount ++
+        } else {
+          pressCloseCount = 0;
+        }
+        pressCloseMillis = millis();
+        if (pressCloseCount > 2) {
+          lsCloseWindows();
+          pressCloseCount = 0
+        }
       }
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
