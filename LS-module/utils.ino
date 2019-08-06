@@ -302,7 +302,6 @@ void playWithEcn() {
    Тестстрелок - кратковременно до максимума
 */
 void panelCheck() {
-  // todo нехватает еще одной стрелки!!!
   log("==>making panelCheck!");
   // delay(300);
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x06, 0x01, 0x8A, 0x00, 0x00, 0x00); // speed
@@ -390,6 +389,24 @@ void lsDoThanks(){
   debug("Stop blinking back");
 }
 
+/**
+ * Зажечь задние поворотники
+ */
+void lsBackTurnLights1000(){
+#ifdef DEBUG
+  debug("back turn lights on");
+#endif
+  lsBeep(0x04);
+  SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00);
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0xC0, 0xC0, 0x00, 0x00, 0x00);
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00);
+  delay(1000);
+
+  SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00);
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00);
+}
+
 void lsDoStrob(){
   debug("lsDoStrob. To turn off press knob down");
   for (int i=0; i<2; i++){
@@ -429,6 +446,32 @@ void lsDoStrob(){
   }
 
 }
+
+/**
+ * Зажечь допстоп
+ */
+void lsTopStopSignalSet(bool turnOn) {
+  if (turnon) {
+  #ifdef DEBUG
+  debug("lsTopStopSigna - on");
+  #endif
+//    SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x01, 0x00, 0x00, 0x00); // todo!
+  } else {
+//  debug("lsTopStopSigna - off);
+//  lsBeep(0x1e, 0x01, 0x33);
+  }
+}
+
+/**
+ *  Закрыть окна
+ */
+void lsCloseWindows() {
+  lsTopStopSignalSet(true); // включаю верхний стоп
+  SendCANmessage(0x160, 4, 0x02, 0xC0, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
+  delay(4000);
+  SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
+}
+
 // == на будущее
 // 251#04.AE.03.04.04.00.00.00 открытие багажника
 void lsOpenRearDoor(){
