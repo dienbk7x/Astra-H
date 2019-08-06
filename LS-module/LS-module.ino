@@ -55,14 +55,27 @@ long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
 int coolantTemp;
 int voltage = 0;
+
+byte gear = 0;
+byte recommendedGear = 0;
 uint8 speed = 0; // up to 256
+uint8 speedPrev = 0; // up to 256
+uint8 speed400 = 0; // up to 256
+uint8 speed400Prev = 0; // up to 256
+short dV = 0; // speed increace or decreace
+short dV400 = 0; // speed increace or decreace at 400 ms interval
+long dVMillis = 0;
+long dtSpeed400 = 0;
+
 int taho = 0;
 
 // Flags
 volatile bool flagHandBrake = false; // флаг обнаружения поднятого ручника
 volatile bool flagDoorsOpen = false; // флаг обнаружения открытой двери
 volatile bool flagButtonPressed = false; // флаг для однократной обработки нажатия бобышки при переключении режима
-//volatile bool flagDoorsAcknowledged = false; // флаг квитирования режима двери авто
+volatile bool flagDoorsAcknowledged = false; // флаг квитирования режима двери авто
+volatile bool flagThrottle;  // флаг нажатой педали газа
+volatile bool flagBackwards;  // флаг заднего хода
 volatile bool flag;  // флаг заготовка
 
 // Instanciation of CAN interface
@@ -108,34 +121,100 @@ void loop()
   while ( ( r_msg = canBus.recv() ) != NULL )
   {
     ///// processing the incoming message
-    if (r_msg->ID == 0x100) {
+    if (r_msg->ID == 0x100) { // wake-up message
       // debug("0x100");
     }// do nothing
 
     else if (r_msg->ID == 0x108) { // speed + taho
-      speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
+      speedPrev = speed;
+      speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
+      dV = speed - speedPrev; // usually 0, 1 or -1
+      flagThrottle = (r_msg->Data[0] & 0x20)?true:false;
+
       if (ECN_SPEED == ecnMode) {
-        // gear factor. TODO: log and count gear
-        uint8 gear = (speed * 10) / (taho/100); // 80*10 / 3000/100
-        debug("speed: ", speed);
-        debug("taho: ", taho);
-        debug("gear factor:", gear);
+
+      //-------------- process decelerations by 400 ms--------------//
+      //--
+        // process low speed < 10 kph  // todo make separate interval.
+        if ((speed < 10) && (false == flagBackwards)) {
+                lsTopStopSignalSet(true); // включаю верхний стоп
+        }
+
+        dtSpeed400 = millis() - dVMillis;
+        if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
+          if (dtSpeed400 < 800) { // если более 800, то начинаем сначала без обработки
+            dv400 = speed - speed400Prev; // измеряем разницу с текущим
+            // check for speed down without active braking and with released throttle
+            if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
+              lsBeep(0x1e, 0x01, 0x88);
+              lsTopStopSignalSet(true); // включаю верхний стоп
+            }
+
+            // check high deceleration
+            float accelG = dV400 * 3600 /dtSpeed400 / 9.8; // kph/ms*3600 = m/s/s ; /9.8 = g
+            if ( accelG < -2 ) { // при торможении сильнее 2g
+              lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
+            }
+          }
+
+          dVMillis = millis() + 400; // hardcoded interval !! Increment time
+          uint8 speed400Prev = speed; // запоминаем предыдущее значение скорости
+        }
+      //--
+      //-------------- END process decelerations by 400 ms--------------//
+
+
+        // ------ gear ------------
+        if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
+          uint8 gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
+          if (gearFactor < 10) { // определяем передачу
+            gear = 1;
+          } else if (gearFactor < 15) {
+            gear = 2;
+          } else if (gearFactor < 25) {
+            gear = 3;
+          } else if (gearFactor < 30) {
+            gear = 4;
+          } else if (gearFactor < 35) {
+            gear = 5;
+          }
+
+          recommendedGear = gear;
+          if (taho > 3100) {
+            recommendedGear = gear + 1;
+          } else if (taho < 1800) {
+            if (gear>0) {
+              recommendedGear = gear - 1;
+            }
+          }
+        }
+        uint8 gears = 10*recommendedGear + gear;
+        lsShowEcnDecimal(gears, speed); // experimental! needs to be checked
+        // ------ END gear ------------
+
         #ifdef DEBUG
-            SERIAL.print("gear;");
             SERIAL.print(millis());
-            SERIAL.print(";");
+            SERIAL.print(";taho;");
             SERIAL.print(taho);
-            SERIAL.print(";");
+            SERIAL.print(";speed;");
             SERIAL.print(speed);
+            SERIAL.print(";gearFactor;");
+            SERIAL.print(gearFactor);
+            SERIAL.print(";gear;");
+            SERIAL.print(gear);
+            SERIAL.print(";accelG;");
+            SERIAL.print(accelG);
+            SERIAL.print(";flagThrottle;");
+            SERIAL.print(flagThrottle); // ?"1":"0"
+            SERIAL.print(";flagBackwards;");
+            SERIAL.print(flagBackwards);
             SERIAL.println(";");
         #endif
-        lsShowEcnDecimal(gear, speed); // experimental! needs to be checked
       }
-    }
 
-    else if (r_msg->ID == 0x135) { // open/close locks
+    } else if (r_msg->ID == 0x135) { // open/close locks
     /*
     кнопку нажал (закрыть!)	  135	BC	00	FD	70
     кнопку отпустил	          135	3C	00	FD	70
@@ -198,12 +277,12 @@ void loop()
         flagButtonPressed = false;
       }
 
-    } else if (r_msg->ID == 0x230) {
+    } else if (r_msg->ID == 0x230) { // doors status
 
       if ( (ECN_DOORS == ecnMode) || (ecnMode == ECN_DOORS_AUTO) ) { // режим дверей? тогда выводим
         // todo insert timeout?
         // записать и отобразить // todo extract method
-        uint8 d0 = 0x40; // 1 + front left
+        uint8 d0 = 0x10; // 1 + front left
         uint8 d1 = 0x00; // rear left + bagage
         uint8 d2 = 0x00; // rear right + front right
         if (r_msg->Data[2] & 0x40) {d0 += 0x0F;}  // 1F0000
@@ -234,6 +313,13 @@ void loop()
 задние пассажирские в data[1]
 */
     
+    } else if (r_msg->ID == 0x350) { // backwards drive direction
+      if ((r_msg->Data[0]) & 0x10) {
+        flagBackwards = true;
+      } else {
+        flagBackwards = false;
+      }
+
     } else if (r_msg->ID == 0x370) {
       // debug("handbrake, fog lights, etc...");
       if ((r_msg->Data[1]) & 0x01) {
