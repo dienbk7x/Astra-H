@@ -42,7 +42,7 @@ enum EcnMode {
   ECN_DOORS_AUTO,     // открытые двери (с возвратом в предыдущий режим)
   ECN_UNDERVOLTAGE,   // для низкого напряжения
   ECN_OVERHEAT,       // для перегрева
-  ECN_STROBS          // для стробов ?
+  ECN_STROBS          // для стробов
 };
 // enum EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
 // enum EcnMode savedEcnMode = OFF;
@@ -291,6 +291,7 @@ printMsg();
            (r_msg->Data[6] == 0x1F) &&
            (r_msg->Data[0] == 0x08)) {  // left knob up + lights pull
         ecnMode = ECN_STROBS;
+        flagButtonPressed = true;
 
       } else if ( (r_msg->Data[5] == 0x11) &&
                   (r_msg->Data[6] == 0x1F) &&
@@ -301,9 +302,15 @@ printMsg();
                   (r_msg->Data[6] == 0x1F) &&
                   (OFF != ecnMode)) {  //   left knob up
 //        {savedEcnMode = ecnMode;}
-        ecnMode = OFF;
-        log("ECN mode off");
-        lsShowEcn(0x0F, 0xF0, 0xFF);
+        if (flagButtonPressed) {
+        // ничего не делаем до отпускания
+        } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
+          ecnMode = OFF;
+          flagButtonPressed = true;
+          log("ECN mode off");
+          lsShowEcn(0x0F, 0xF0, 0xFF);
+        }
+
       }
 
       if (r_msg->Data[5] == 0x00) {
