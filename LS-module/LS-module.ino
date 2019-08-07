@@ -78,7 +78,7 @@ long pressCloseMillis = 0;
 volatile bool flagHandBrake = false; // флаг обнаружения поднятого ручника
 volatile bool flagDoorsOpen = false; // флаг обнаружения открытой двери
 volatile bool flagButtonPressed = false; // флаг для однократной обработки нажатия бобышки при переключении режима
-volatile bool flagDoorsAcknowledged = false; // флаг квитирования режима двери авто
+volatile bool flagDoorsAcknowledge = false; // флаг квитирования режима двери авто
 volatile bool flagThrottle = false;  // флаг нажатой педали газа
 volatile bool flagBackwards = false;  // флаг заднего хода
 volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
@@ -278,11 +278,17 @@ printMsg();
         if (flagButtonPressed) {
         // ничего не делаем до отпускания
         } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
-          ecnMode++; // работает только для int ((
+
+          if (ecnMode == ECN_DOORS_AUTO)  { // режим дверей? тогда
+            flagDoorsAcknowledge = true;
+            ecnMode = savedEcnMode;
+          } else {
+            ecnMode++; // работает только для int ((
+          }
+
           flagButtonPressed = true;
-          debug("mode = ", ecnMode);
-          log("ECN mode on / +1");
           #ifdef DEBUG
+          debug("mode = ", ecnMode);
           lsBeep(ecnMode);
           #endif
         }
@@ -331,16 +337,18 @@ printMsg();
         if (r_msg->Data[1] & 0x40) {d1 += 0xb0;}  // 10b000
         if (r_msg->Data[1] & 0x10) {d2 += 0xb0;}  // 1000b0
         lsShowEcn(d0, d1, d2);
-      } else { // другой режим -- тогда при открытых переключаем на авто
+      } else { // другой режим -- тогда <при открытых> переключаем на авто
 //        todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
-          savedEcnMode = ecnMode;
-          ecnMode = ECN_DOORS_AUTO;
+          if (flagDoorsAcknowledge == false) {
+            savedEcnMode = ecnMode;
+            ecnMode = ECN_DOORS_AUTO;
+          }
       }
 
       if ( (r_msg->Data[2]) || (r_msg->Data[1]) ) { // не нули - двери открыты
 //        flagDoorsOpen = true;
       } else { // нули - двери закрыты
-//        flagDoorsOpen = false;
+        flagDoorsAcknowledge = false;//        flagDoorsOpen = false;
         if (ecnMode == ECN_DOORS_AUTO) {
           ecnMode = savedEcnMode;
         }
