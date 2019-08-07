@@ -451,7 +451,7 @@ void lsDoStrob(){
  * Зажечь допстоп
  */
 void lsTopStopSignalSet(bool turnOn) {
-  if (turnon) {
+  if (turnOn) {
   #ifdef DEBUG
   debug("lsTopStopSigna - on");
   #endif

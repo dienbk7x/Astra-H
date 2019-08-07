@@ -57,6 +57,7 @@ int coolantTemp;
 int voltage = 0;
 
 byte gear = 0;
+uint8 gearFactor = 0;
 byte recommendedGear = 0;
 uint8 speed = 0; // up to 256
 uint8 speedPrev = 0; // up to 256
@@ -66,6 +67,7 @@ short dV = 0; // speed increace or decreace
 short dV400 = 0; // speed increace or decreace at 400 ms interval
 long dVMillis = 0;
 long dtSpeed400 = 0;
+float accelG = 0;
 
 int taho = 0;
 
@@ -148,7 +150,7 @@ void loop()
         dtSpeed400 = millis() - dVMillis;
         if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
           if (dtSpeed400 < 800) { // если более 800, то начинаем сначала без обработки
-            dv400 = speed - speed400Prev; // измеряем разницу с текущим
+            dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
               lsBeep(0x1e, 0x01, 0x88);
@@ -156,7 +158,7 @@ void loop()
             }
 
             // check high deceleration
-            float accelG = dV400 * 3600 /dtSpeed400 / 9.8; // kph/ms*3600 = m/s/s ; /9.8 = g
+            accelG = dV400 * 3600 /dtSpeed400 / 9.8; // kph/ms*3600 = m/s/s ; /9.8 = g
             if ( accelG < -2 ) { // при торможении сильнее 2g
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
             }
@@ -171,7 +173,7 @@ void loop()
 
         // ------ gear ------------
         if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
-          uint8 gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
+          gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
           if (gearFactor < 10) { // определяем передачу
             gear = 1;
           } else if (gearFactor < 15) {
@@ -245,15 +247,15 @@ void loop()
 printMsg();
 #endif
       if ( (r_msg->Data[1]==0x40) || (r_msg->Data[1]==0x80) ) { // press close
-        if ((millis() - pressCloseCountMillis) < 2000 ) {
-          pressCloseCount ++
+        if ((millis() - pressCloseMillis) < 2000 ) {
+          pressCloseCount ++;
         } else {
           pressCloseCount = 0;
         }
         pressCloseMillis = millis();
         if (pressCloseCount > 2) {
           lsCloseWindows();
-          pressCloseCount = 0
+          pressCloseCount = 0;
         }
       }
 
