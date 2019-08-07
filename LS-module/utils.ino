@@ -85,12 +85,14 @@ void lsCANSetup(void)
    debug("setting filters...");
 //  canBus.filter(0, 0, 0);
    canBus.filter(0, 0x100 << 21, 0xFFFFFFFF) ; // nothing
-   canBus.filter(1, 0x145 << 21, 0xFFFFFFFF) ; // engine tempr
-   canBus.filter(2, 0x175 << 21, 0xFFFFFFFF) ; // Steering wheel buttons
-   canBus.filter(3, 0x230 << 21, 0xFFFFFFFF) ; // doors and locls
-   canBus.filter(4, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
-   canBus.filter(5, 0x500 << 21, 0xFFFFFFFF) ; // voltage
-   canBus.filter(6, 0x108 << 21, 0xFFFFFFFF) ; // speed, taho
+   canBus.filter(1, 0x108 << 21, 0xFFFFFFFF) ; // speed, taho
+   canBus.filter(2, 0x145 << 21, 0xFFFFFFFF) ; // engine tempr
+   canBus.filter(3, 0x160 << 21, 0xFFFFFFFF) ; // open/close from distance
+   canBus.filter(4, 0x175 << 21, 0xFFFFFFFF) ; // Steering wheel buttons
+   canBus.filter(5, 0x230 << 21, 0xFFFFFFFF) ; // doors and locls
+   canBus.filter(6, 0x350 << 21, 0xFFFFFFFF) ; // backwards drive direction
+   canBus.filter(7, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
+   canBus.filter(8, 0x500 << 21, 0xFFFFFFFF) ; // voltage
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();

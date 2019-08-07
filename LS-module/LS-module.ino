@@ -219,8 +219,8 @@ void loop()
         #endif
       }
 
-    } else if (r_msg->ID == 0x135) { // open/close locks
     /*
+    } else if (r_msg->ID == 0x135) { // open/close locks
     кнопку нажал (закрыть!)   135 BC  00  FD  70
     кнопку отпустил	          135 3C  00  FD  70
     кнопку нажал (открыть!)   135 7C  00  FD  70
