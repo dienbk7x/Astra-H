@@ -3,8 +3,8 @@
 */
 #include <HardwareCAN.h>
 
-#define __VERSION 1.15
-#define __DATE 2019-08-06
+#define __VERSION 1.16
+#define __DATE 2019-08-07
 
 /////// === Настройки модуля! === ///////
 
