@@ -79,9 +79,10 @@ volatile bool flagHandBrake = false; // флаг обнаружения подн
 volatile bool flagDoorsOpen = false; // флаг обнаружения открытой двери
 volatile bool flagButtonPressed = false; // флаг для однократной обработки нажатия бобышки при переключении режима
 volatile bool flagDoorsAcknowledged = false; // флаг квитирования режима двери авто
-volatile bool flagThrottle;  // флаг нажатой педали газа
-volatile bool flagBackwards;  // флаг заднего хода
-volatile bool flag;  // флаг заготовка
+volatile bool flagThrottle = false;  // флаг нажатой педали газа
+volatile bool flagBackwards = false;  // флаг заднего хода
+volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
+volatile bool flag = false;  // флаг заготовка
 
 // Instanciation of CAN interface
 HardwareCAN canBus(CAN1_BASE);
@@ -161,11 +162,12 @@ void loop()
             accelG = dV400 * 3600 /dtSpeed400 / 9.8; // kph/ms*3600 = m/s/s ; /9.8 = g
             if ( accelG < -2 ) { // при торможении сильнее 2g
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
-            }
+              flagFastBraking = true;
+            } else {flagFastBraking = false;}
           }
 
           dVMillis = millis() + 400; // hardcoded interval !! Increment time
-          uint8 speed400Prev = speed; // запоминаем предыдущее значение скорости
+          speed400Prev = speed; // запоминаем предыдущее значение скорости
         }
       //--
       //-------------- END process decelerations by 400 ms--------------//
@@ -205,12 +207,21 @@ void loop()
             SERIAL.print(taho);
             SERIAL.print(";speed;");
             SERIAL.print(speed);
+
             SERIAL.print(";gearFactor;");
             SERIAL.print(gearFactor);
             SERIAL.print(";gear;");
             SERIAL.print(gear);
+
+            SERIAL.print(";dV;");
+            SERIAL.print(dV);
+            SERIAL.print(";dV400;");
+            SERIAL.print(dV400);
             SERIAL.print(";accelG;");
             SERIAL.print(accelG);
+            SERIAL.print(";flagFastBraking;");
+            SERIAL.print(flagFastBraking);
+
             SERIAL.print(";flagThrottle;");
             SERIAL.print(flagThrottle); // ?"1":"0"
             SERIAL.print(";flagBackwards;");
@@ -261,8 +272,8 @@ printMsg();
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
       // debug("Steering wheel buttons");
-      if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) {
-        //       left knob down
+
+      if ( (r_msg->Data[5] == 0x20) && (r_msg->Data[6] == 0x01) ) { // left knob down
         // debug("left knob down");
         if (flagButtonPressed) {
         // ничего не делаем до отпускания
@@ -276,23 +287,24 @@ printMsg();
           #endif
         }
 
-      } else if ( (r_msg->Data[5] == 0x10) && 
-                  (r_msg->Data[6] == 0x1F) ) {  //   left knob up
-//        if (OFF != ecnMode) {savedEcnMode = ecnMode;}
-        ecnMode = OFF;
-        log("ECN mode off");
-        lsShowEcn(0x0F, 0xF0, 0xFF); 
-      } else if ( (r_msg->Data[5] == 0x11) && 
-                  (r_msg->Data[6] == 0x1F) && 
-                  (r_msg->Data[7] == 0x01) ) {  // both knobs up
-        lsDoThanks();
-      } 
-
-      if ( (r_msg->Data[5] == 0x10) && 
+      } else if ( (r_msg->Data[5] == 0x10) &&
            (r_msg->Data[6] == 0x1F) &&
            (r_msg->Data[0] == 0x08)) {  // left knob up + lights pull
         ecnMode = ECN_STROBS;
-      } 
+
+      } else if ( (r_msg->Data[5] == 0x11) &&
+                  (r_msg->Data[6] == 0x1F) &&
+                  (r_msg->Data[7] == 0x01) ) {  // both knobs up
+        lsDoThanks();
+
+      } else if ( (r_msg->Data[5] == 0x10) &&
+                  (r_msg->Data[6] == 0x1F) &&
+                  (OFF != ecnMode)) {  //   left knob up
+//        {savedEcnMode = ecnMode;}
+        ecnMode = OFF;
+        log("ECN mode off");
+        lsShowEcn(0x0F, 0xF0, 0xFF);
+      }
 
       if (r_msg->Data[5] == 0x00) {
         flagButtonPressed = false;
