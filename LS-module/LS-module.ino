@@ -3,10 +3,11 @@
 */
 #include <HardwareCAN.h>
 
-#define __VERSION 1.16
-#define __DATE 2019-08-07
+#define __VERSION 1.17
+#define __DATE 2019-08-14
 
-/////// === Настройки модуля! === ///////
+
+/////// ============= Настройки модуля! | User settings! ============= ///////
 
 // Uncomment to enable 'debug()' messages output
 #define DEBUG
@@ -24,6 +25,8 @@
 #define CAN_GPIO_PINS_MS CAN_GPIO_PA11_PA12
 #define CAN_GPIO_PINS_LS CAN_GPIO_PB8_PB9
 
+
+/////// ============= Настройки системы | System settings ============= ///////
 // Built-in LED
 #define PC13ON 0
 #define PC13OFF 1
@@ -31,7 +34,10 @@
 // default delay?
 #define DELAY 500
 
-/////// === Глобальные переменные === ///////
+#define __LINE10 ====================
+
+
+/////// ============= Глобальные переменные | Global variables ============= ///////
 /* global variables */
 enum EcnMode {
   OFF=0, 
@@ -73,6 +79,10 @@ int taho = 0;
 
 byte pressCloseCount = 0;
 long pressCloseMillis = 0;
+
+String messageUart;
+uint32_t timeUart = 0; //Variable for the USART buffer fill timer
+
 
 // Flags
 volatile bool flagHandBrake = false; // флаг обнаружения поднятого ручника
@@ -123,10 +133,10 @@ void setup()
 void loop()
 {
   //  debug("loop");
-  // ======== receive message and set flags =========
+  // ======== receive message and set flags ===================================================================
   while ( ( r_msg = canBus.recv() ) != NULL )
-  {
-    ///// processing the incoming message
+ {
+    ///// processing the incoming CAN message
     if (r_msg->ID == 0x100) { // wake-up message
       // debug("0x100");
     }// do nothing
@@ -146,11 +156,10 @@ void loop()
         // process low speed < 10 kph  // todo make separate interval.
         if ((speed < 10) && (false == flagBackwards)) {
                 lsTopStopSignalSet(true); // включаю верхний стоп
-
         }
 
         dtSpeed400 = millis() - dVMillis;
-        if (dtSpeed400 > 380) { // если прошло более 400 миллисекунд
+        if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
           if (dtSpeed400 < 800) { // если более 800, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
@@ -403,7 +412,7 @@ printMsg();
 
   }
   // close while
-  // ======== check flags and execute actions =========
+  // ======== check flags and execute actions ======================================================================
   if ((ECN_TEMP_VOLT == ecnMode) && (millis() > ecnMillis)) {
 //     debug("(1 == ecnMode) && (millis() > ecnMillis)");
     debug("Coolant: ", coolantTemp - 40);
@@ -466,6 +475,67 @@ printMsg();
   } else if (ECN_STROBS == ecnMode) {
     lsDoStrob();
   }
-  
+
+  // ======== Receive a message from SERIAL =======================================================================
+    if (millis() - timeUart > 200) {   //delay needed to fillup buffers
+      messageUart = readUart();
+      timeUart = millis();
+    }
+    if ((messageUart != "")) { // recognize and execute command
+      if (messageUart.equals("help")) {
+        ecnMode = 0;
+        log("__LINE10");
+        log("List of commands:");
+        log("mode00");
+        log("mode++");
+        log("lsCANSetup");
+        log("wakeUpBus");
+        log("playWithEcn");
+        log("panelCheck");
+        log("lsBeep");
+        log("lsDoThanks");
+        log("BackTurn1000");
+        log("lsTopStopSignalSet");
+        log("lsDoStrob");
+        log("lsCloseWindows");
+        log("lsOpenWindows");
+        log("lsOpenWindows2");
+        log("lsOpenRearDoor");
+        delay(2000);
+      } else if (messageUart.equals("lsDoStrob")) {
+        lsDoStrob();
+      } else if (messageUart.equals("mode00")) {
+        ecnMode = OFF;
+      } else if (messageUart.equals("mode++")) {
+        ecnMode++;
+      } else if (messageUart.equals("lsCANSetup")) {
+        lsCANSetup();
+      } else if (messageUart.equals("wakeUpBus")) {
+        wakeUpBus();
+      } else if (messageUart.equals("playWithEcn")) {
+        playWithEcn();
+      } else if (messageUart.equals("panelCheck")) {
+        panelCheck();
+      } else if (messageUart.equals("lsBeep")) {
+        lsBeep();
+      } else if (messageUart.equals("lsDoThanks")) {
+        lsDoThanks();
+      } else if (messageUart.equals("BackTurn1000")) {
+        lsBackTurnLights1000();
+      } else if (messageUart.equals("lsTopStopSignalSet")) {
+        lsTopStopSignalSet(true);
+      } else if (messageUart.equals("lsCloseWindows")) {
+        lsCloseWindows();
+      } else if (messageUart.equals("lsOpenWindows")) {
+        lsOpenWindows();
+      } else if (messageUart.equals("lsOpenWindows2")) {
+        lsOpenWindows(true);
+      } else if (messageUart.equals("lsOpenRearDoor")) {
+        lsOpenRearDoor();
+      } else if (messageUart.equals("")) {
+      } else if (messageUart.equals("")) {
+      }
+    }
+
 }
 // close void loop

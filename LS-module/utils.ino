@@ -1,6 +1,7 @@
 // ======== GENERAL ==========
 // #define DEBUG
 // #define LOG
+
 /**
    print out extra messages that are needed for debug only
 */
@@ -11,9 +12,10 @@ void debug(String str) {
   SERIAL.println(str);
 #endif
 }
+
 /**
-   print out extra message + value
-*/
+ * print out extra message + value
+ */
 void debug(String str, int val) {
 #ifdef DEBUG
   SERIAL.print(millis());
@@ -23,9 +25,10 @@ void debug(String str, int val) {
   SERIAL.println(val);
 #endif
 }
+
 /**
-   print out extra message + HEX value
-*/
+ * print out extra message + HEX value
+ */
 void debugHex(String str, int val) {
 #ifdef DEBUG    
   SERIAL.print(millis());
@@ -36,16 +39,31 @@ void debugHex(String str, int val) {
 #endif
 }
 
-
-/*
-   print some string data to UART (bluetooth)
-*/
+/**
+ * print some string data to UART (bluetooth)
+ */
 void log(String str) {
 #ifdef LOG
   SERIAL.print(millis());
   SERIAL.print("\t");
   SERIAL.println(str);
 #endif
+}
+
+/**
+ * Fill an array with USART characters (full string from HW buffer)
+ */
+String readUart() {
+  String buffer;
+  char u;
+  while (SERIAL.available() > 0 && u != '\n') { //read serial buffer until \n
+    char u = SERIAL.read();
+    if (u != 0xD) buffer += u;  // skip \r
+  }
+#ifdef DEBUG
+  SERIAL.print(buffer);
+#endif
+  return buffer;
 }
 
 // ======== CAN related ==========
@@ -473,6 +491,20 @@ void lsCloseWindows() {
   delay(4000);
   SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
 }
+/**
+ *  Открыть окна
+ */
+void lsOpenWindows(bool half) {
+  int holdDelay = half?2000:4000;
+  lsTopStopSignalSet(true); // включаю верхний стоп
+  SendCANmessage(0x160, 4, 0x02, 0x30, 0x04, 0xFA, 0, 0, 0, 0); // hold open on remote
+  delay(holdDelay);
+  SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
+}
+void lsOpenWindows() {
+lsOpenWindows(false);
+}
+
 
 // == на будущее
 // 251#04.AE.03.04.04.00.00.00 открытие багажника
