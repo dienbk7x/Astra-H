@@ -146,10 +146,11 @@ void loop()
         // process low speed < 10 kph  // todo make separate interval.
         if ((speed < 10) && (false == flagBackwards)) {
                 lsTopStopSignalSet(true); // включаю верхний стоп
+
         }
 
         dtSpeed400 = millis() - dVMillis;
-        if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
+        if (dtSpeed400 > 380) { // если прошло более 400 миллисекунд
           if (dtSpeed400 < 800) { // если более 800, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
@@ -160,7 +161,11 @@ void loop()
 
             // check high deceleration
             accelG = dV400 * 3600 /dtSpeed400 / 9.8; // kph/ms*3600 = m/s/s ; /9.8 = g
-            if ( accelG < -2 ) { // при торможении сильнее 2g
+            if ( accelG < -3 ) { // при торможении сильнее 3g
+              #ifdef DEBUG
+              debug("back turn lights on");
+              lsBeep(0x04);
+              #endif
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
               flagFastBraking = true;
             } else {flagFastBraking = false;}
