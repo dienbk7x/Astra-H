@@ -34,7 +34,7 @@
 // default delay?
 #define DELAY 500
 
-#define __LINE10 ====================
+String line10 = "====================";
 
 
 /////// ============= Глобальные переменные | Global variables ============= ///////
@@ -92,6 +92,7 @@ volatile bool flagDoorsAcknowledge = false; // флаг квитирования
 volatile bool flagThrottle = false;  // флаг нажатой педали газа
 volatile bool flagBackwards = false;  // флаг заднего хода
 volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
+volatile bool flagUartReceived = false;  // флаг заготовка
 volatile bool flag = false;  // флаг заготовка
 
 // Instanciation of CAN interface
@@ -477,14 +478,17 @@ printMsg();
   }
 
   // ======== Receive a message from SERIAL =======================================================================
-    if (millis() - timeUart > 200) {   //delay needed to fillup buffers
+    if ((millis() - timeUart > 200) && (!flagUartReceived)) {   //delay needed to fillup buffers
       messageUart = readUart();
+//      flagUartReceived = true;
       timeUart = millis();
     }
     if ((messageUart != "")) { // recognize and execute command
-      if (messageUart.equals("help")) {
+  SERIAL.print("received message: ");
+  SERIAL.println(messageUart);
+      if (messageUart=="help") {
         ecnMode = 0;
-        log("__LINE10");
+        log(line10);
         log("List of commands:");
         log("mode00");
         log("mode++");
@@ -501,40 +505,41 @@ printMsg();
         log("lsOpenWindows");
         log("lsOpenWindows2");
         log("lsOpenRearDoor");
-        delay(2000);
-      } else if (messageUart.equals("lsDoStrob")) {
+        delay(3500);
+      } else if (messageUart=="lsDoStrob") {
         lsDoStrob();
-      } else if (messageUart.equals("mode00")) {
+      } else if (messageUart=="mode00") {
         ecnMode = OFF;
-      } else if (messageUart.equals("mode++")) {
+      } else if (messageUart=="mode++") {
         ecnMode++;
-      } else if (messageUart.equals("lsCANSetup")) {
+      } else if (messageUart=="lsCANSetup") {
         lsCANSetup();
-      } else if (messageUart.equals("wakeUpBus")) {
+      } else if (messageUart=="wakeUpBus") {
         wakeUpBus();
-      } else if (messageUart.equals("playWithEcn")) {
+      } else if (messageUart=="playWithEcn") {
         playWithEcn();
-      } else if (messageUart.equals("panelCheck")) {
+      } else if (messageUart=="panelCheck") {
         panelCheck();
-      } else if (messageUart.equals("lsBeep")) {
+      } else if (messageUart=="lsBeep") {
         lsBeep();
-      } else if (messageUart.equals("lsDoThanks")) {
+      } else if (messageUart=="lsDoThanks") {
         lsDoThanks();
-      } else if (messageUart.equals("BackTurn1000")) {
+      } else if (messageUart=="BackTurn1000") {
         lsBackTurnLights1000();
-      } else if (messageUart.equals("lsTopStopSignalSet")) {
+      } else if (messageUart=="lsTopStopSignalSet") {
         lsTopStopSignalSet(true);
-      } else if (messageUart.equals("lsCloseWindows")) {
+      } else if (messageUart=="lsCloseWindows") {
         lsCloseWindows();
-      } else if (messageUart.equals("lsOpenWindows")) {
+      } else if (messageUart=="lsOpenWindows") {
         lsOpenWindows();
-      } else if (messageUart.equals("lsOpenWindows2")) {
+      } else if (messageUart=="lsOpenWindows2") {
         lsOpenWindows(true);
-      } else if (messageUart.equals("lsOpenRearDoor")) {
+      } else if (messageUart=="lsOpenRearDoor") {
         lsOpenRearDoor();
-      } else if (messageUart.equals("")) {
-      } else if (messageUart.equals("")) {
+      } else if (messageUart=="") {
+      } else if (messageUart=="") {
       }
+      messageUart = "";
     }
 
 }

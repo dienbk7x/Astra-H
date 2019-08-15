@@ -58,11 +58,16 @@ String readUart() {
   char u;
   while (SERIAL.available() > 0 && u != '\n') { //read serial buffer until \n
     char u = SERIAL.read();
-    if (u != 0xD) buffer += u;  // skip \r
+    if ((u != 0xD)) buffer += u;  // skip \r
   }
-#ifdef DEBUG
-  SERIAL.print(buffer);
-#endif
+  buffer.remove(buffer.length() - 1);
+//#ifdef DEBUG
+//  SERIAL.print("received message: ");
+//  SERIAL.println(buffer);
+//  SERIAL.print("received length: ");
+//  SERIAL.println(buffer.length());
+//#endif
+//  flagUartReceived = true;
   return buffer;
 }
 
