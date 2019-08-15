@@ -79,6 +79,8 @@ int taho = 0;
 
 byte pressCloseCount = 0;
 long pressCloseMillis = 0;
+byte pressOpenCount = 0;
+long pressOpenMillis = 0;
 
 String messageUart;
 uint32_t timeUart = 0; //Variable for the USART buffer fill timer
@@ -282,6 +284,17 @@ printMsg();
         if (pressCloseCount > 2) {
           lsCloseWindows();
           pressCloseCount = 0;
+        }
+      } else if ( (r_msg->Data[1]==0x10) || (r_msg->Data[1]==0x20) ) { // press open
+        if ((millis() - pressOpenMillis) < 2000 ) {
+          pressOpenCount ++;
+        } else {
+          pressOpenCount = 0;
+        }
+        pressOpenMillis = millis();
+        if (pressOpenCount > 2) {
+          lsOpenWindows();
+          pressOpenCount = 0;
         }
       }
 
