@@ -163,7 +163,7 @@ void loop()
 
         dtSpeed400 = millis() - dVMillis;
         if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
-          if (dtSpeed400 < 800) { // если более 800, то начинаем сначала без обработки
+          if (dtSpeed400 < 1000) { // если более 800, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
@@ -172,8 +172,16 @@ void loop()
             }
 
             // check high deceleration
-            accelG = dV400 * 3600 /dtSpeed400 / 9.8; // kph/ms*3600 = m/s/s ; /9.8 = g
-            if ( accelG < -3 ) { // при торможении сильнее 3g
+            accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
+
+            if ( accelG < -0.50 ) { // при торможении сильнее 0,50 g -- можно и без расчета, по dV400
+            //   dV400    g my  ?  g calc
+            //    -11     -0.55 ? -0.78
+            //    -10           ? -0.71
+            //     -9     -0.45 ? -0.64
+            //     -8     -0.40 ? -0.57
+            //     -7     -0.37 ? -0.50
+            //
               #ifdef DEBUG
               debug("back turn lights on");
               lsBeep(0x04);
@@ -234,6 +242,8 @@ void loop()
             SERIAL.print(dV);
             SERIAL.print(";dV400;");
             SERIAL.print(dV400);
+            SERIAL.print(";dtSpeed400;");
+            SERIAL.print(dtSpeed400);
             SERIAL.print(";accelG;");
             SERIAL.print(accelG);
             SERIAL.print(";flagFastBraking;");
