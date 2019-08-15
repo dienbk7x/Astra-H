@@ -275,24 +275,24 @@ void loop()
 printMsg();
 #endif
       if ( (r_msg->Data[1]==0x40) || (r_msg->Data[1]==0x80) ) { // press close
-        if ((millis() - pressCloseMillis) < 2000 ) {
+        if ((millis() - pressCloseMillis) < 4000 ) {
           pressCloseCount ++;
         } else {
           pressCloseCount = 0;
         }
         pressCloseMillis = millis();
-        if (pressCloseCount > 2) {
+        if (pressCloseCount > 1) {
           lsCloseWindows();
           pressCloseCount = 0;
         }
       } else if ( (r_msg->Data[1]==0x10) || (r_msg->Data[1]==0x20) ) { // press open
-        if ((millis() - pressOpenMillis) < 2000 ) {
+        if ((millis() - pressOpenMillis) < 4000 ) {
           pressOpenCount ++;
         } else {
           pressOpenCount = 0;
         }
         pressOpenMillis = millis();
-        if (pressOpenCount > 2) {
+        if (pressOpenCount > 1) {
           lsOpenWindows();
           pressOpenCount = 0;
         }
