@@ -366,10 +366,10 @@ SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, data, 0x00, 0x00, 0x00); // tac
       длительность = length*10мс
 */
 void lsBeep(uint8 wait, uint8 count, uint8 length) {
-  log("==>making beep!");
+//  log("==>making beep!");
   //пример сообщения ls.sendMessage(0x280,5,0x70,0x05,0x1e,0x03,0x33);
   SendCANmessage(0x280, 5, 0x70, 0x05, wait, count, length, 0, 0, 0);
-  log("== end making beep!");
+//  log("== end making beep!");
 
 }
 
@@ -477,11 +477,10 @@ void lsDoStrob(){
  */
 void lsTopStopSignalSet(bool turnOn) {
   if (turnOn) {
-  #ifdef DEBUG
-  debug("lsTopStopSignal - on");
-  #endif
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
+  flagTopStopSignal = true;
   } else {
+  flagTopStopSignal = false;
 //  debug("lsTopStopSigna - off);
 //  lsBeep(0x1e, 0x01, 0x33);
   }

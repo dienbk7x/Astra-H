@@ -95,6 +95,7 @@ volatile bool flagThrottle = false;  // флаг нажатой педали г�
 volatile bool flagBackwards = false;  // флаг заднего хода
 volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
 volatile bool flagUartReceived = false;  // флаг заготовка
+volatile bool flagTopStopSignal = false;  // Горит верхний стоп
 volatile bool flag = false;  // флаг заготовка
 
 // Instanciation of CAN interface
@@ -167,7 +168,7 @@ void loop()
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
-              lsBeep(0x1e, 0x01, 0x88);
+//              lsBeep(0x1e, 0x01, 0x88);
               lsTopStopSignalSet(true); // включаю верхний стоп
             }
 
@@ -183,7 +184,7 @@ void loop()
             //     -7     -0.37 ? -0.50
             //
               #ifdef DEBUG
-              debug("back turn lights on");
+//              debug("back turn lights on");
               lsBeep(0x04);
               #endif
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
@@ -191,7 +192,7 @@ void loop()
             } else {flagFastBraking = false;}
           }
 
-          dVMillis = millis() + 400; // hardcoded interval !! Increment time
+          dVMillis = millis(); //+ 400; // hardcoded interval !! Increment time
           speed400Prev = speed; // запоминаем предыдущее значение скорости
         }
       //--
@@ -223,18 +224,22 @@ void loop()
           }
         }
         uint8 gears = 10*recommendedGear + gear;
-        lsShowEcnDecimal(gears, speed); // experimental! needs to be checked
         // ------ END gear ------------
+        uint8 brakes = 0;
+        if (flagTopStopSignal) {brakes+=100;}
+        if (flagFastBraking) {brakes+=200;}
+        gears += brakes;
+        lsShowEcnDecimal(gears, speed);
 
         #ifdef DEBUG
             SERIAL.print(millis());
-            SERIAL.print(";taho;");
+            SERIAL.print(";tah;");
             SERIAL.print(taho);
-            SERIAL.print(";speed;");
+            SERIAL.print(";spd;");
             SERIAL.print(speed);
 
-            SERIAL.print(";gearFactor;");
-            SERIAL.print(gearFactor);
+//            SERIAL.print(";gearFactor;");
+//            SERIAL.print(gearFactor);
             SERIAL.print(";gear;");
             SERIAL.print(gear);
 
@@ -242,17 +247,20 @@ void loop()
             SERIAL.print(dV);
             SERIAL.print(";dV400;");
             SERIAL.print(dV400);
-            SERIAL.print(";dtSpeed400;");
+            SERIAL.print(";dt400;");
             SERIAL.print(dtSpeed400);
-            SERIAL.print(";accelG;");
+            SERIAL.print(";g;");
             SERIAL.print(accelG);
-            SERIAL.print(";flagFastBraking;");
-            SERIAL.print(flagFastBraking);
 
-            SERIAL.print(";flagThrottle;");
+            SERIAL.print(";Gas;");
             SERIAL.print(flagThrottle); // ?"1":"0"
-            SERIAL.print(";flagBackwards;");
+            SERIAL.print(";Backw;");
             SERIAL.print(flagBackwards);
+
+            SERIAL.print(";EmBrk;");
+            SERIAL.print(flagFastBraking);
+            SERIAL.print(";TopStop;");
+            SERIAL.print(flagTopStopSignal);
             SERIAL.println(";");
         #endif
       }
@@ -284,17 +292,9 @@ void loop()
 #ifdef DEBUG
 printMsg();
 #endif
-      if ( (r_msg->Data[1]==0x40) || (r_msg->Data[1]==0x80) ) { // press close
-        if ((millis() - pressCloseMillis) < 4000 ) {
-          pressCloseCount ++;
-        } else {
-          pressCloseCount = 0;
-        }
-        pressCloseMillis = millis();
-        if (pressCloseCount > 1) {
+      if (r_msg->Data[1]==0x80) { // press close 2-nd time
           lsCloseWindows();
-          pressCloseCount = 0;
-        }
+
       } else if ( (r_msg->Data[1]==0x10) || (r_msg->Data[1]==0x20) ) { // press open
         if ((millis() - pressOpenMillis) < 4000 ) {
           pressOpenCount ++;
