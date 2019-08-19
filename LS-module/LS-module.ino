@@ -43,7 +43,8 @@ enum EcnMode {
   OFF=0, 
   ECN_TEMP_VOLT,      // температура и напряжение 
   ECN_SPEED,          // точная скорость
-  ECN_DOORS,          // мониторинг дверей 
+  ECN_SPEED_PLUS,          // точная скорость + анализ // todo временно!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ECN_DOORS,          // мониторинг дверей
   ECN_RETURN,         // крайний режим для возврата в ноль
   ECN_DOORS_AUTO,     // открытые двери (с возвратом в предыдущий режим)
   ECN_UNDERVOLTAGE,   // для низкого напряжения
@@ -76,6 +77,7 @@ long dtSpeed400 = 0;
 float accelG = 0;
 
 int taho = 0;
+String msg;
 
 byte pressCloseCount = 0;
 long pressCloseMillis = 0;
@@ -153,14 +155,11 @@ void loop()
       dV = speed - speedPrev; // usually 0, 1 or -1
       flagThrottle = (r_msg->Data[0] & 0x20)?true:false;
 
-      if (ECN_SPEED == ecnMode) {
+      if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
 
+if (ECN_SPEED_PLUS == ecnMode) {
       //-------------- process decelerations by 400 ms--------------//
       //--
-        // process low speed < 10 kph  // todo make separate interval.
-        if ((speed < 10) && (false == flagBackwards)) {
-                lsTopStopSignalSet(true); // включаю верхний стоп
-        }
 
         dtSpeed400 = millis() - dVMillis;
         if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
@@ -168,14 +167,17 @@ void loop()
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
-//              lsBeep(0x1e, 0x01, 0x88);
+              lsBeep(0x1e, 0x02, 0x10);
+              debug("DECELERATION");
+              msg = "DECELERATION";
               lsTopStopSignalSet(true); // включаю верхний стоп
-            }
+            } else {lsTopStopSignalSet(false);}
 
             // check high deceleration
             accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
 
-            if ( accelG < -0.50 ) { // при торможении сильнее 0,50 g -- можно и без расчета, по dV400
+            if ( dV400 < -9 ) {
+//            if ( accelG < -0.50 ) { // при торможении сильнее 0,50 g -- можно и без расчета, по dV400
             //   dV400    g my  ?  g calc
             //    -11     -0.55 ? -0.78
             //    -10           ? -0.71
@@ -186,6 +188,7 @@ void loop()
               #ifdef DEBUG
 //              debug("back turn lights on");
               lsBeep(0x04);
+              msg = "EMERGENCY BRAKE";
               #endif
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
               flagFastBraking = true;
@@ -198,7 +201,15 @@ void loop()
       //--
       //-------------- END process decelerations by 400 ms--------------//
 
+        // process low speed < 9 kph  // todo make separate interval.
+        if ((speed < 9) && (false == flagBackwards)) {
+          lsBeep(0x1e, 0x01, 0x10);
+          debug("LOW SPEED");
+          msg = "LOW SPEED";
 
+          lsTopStopSignalSet(true); // включаю верхний стоп
+        } else {lsTopStopSignalSet(false);}
+} /////// end if temp
         // ------ gear ------------
         if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
           gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
@@ -261,6 +272,9 @@ void loop()
             SERIAL.print(flagFastBraking);
             SERIAL.print(";TopStop;");
             SERIAL.print(flagTopStopSignal);
+
+            SERIAL.print(msg);
+            msg = "";
             SERIAL.println(";");
         #endif
       }
@@ -293,19 +307,16 @@ void loop()
 printMsg();
 #endif
       if (r_msg->Data[1]==0x80) { // press close 2-nd time
-          lsCloseWindows();
+        delay(500);
+        lsCloseWindows();
 
       } else if ( (r_msg->Data[1]==0x10) || (r_msg->Data[1]==0x20) ) { // press open
-        if ((millis() - pressOpenMillis) < 4000 ) {
-          pressOpenCount ++;
-        } else {
-          pressOpenCount = 0;
-        }
-        pressOpenMillis = millis();
-        if (pressOpenCount > 1) {
-          lsOpenWindows();
-          pressOpenCount = 0;
-        }
+        pressOpenCount ++;
+      }
+      if (pressOpenCount > 1) {
+        delay(500);
+        lsOpenWindows();
+        pressOpenCount = 0;
       }
 
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
@@ -438,7 +449,6 @@ printMsg();
   // close while
   // ======== check flags and execute actions ======================================================================
   if ((ECN_TEMP_VOLT == ecnMode) && (millis() > ecnMillis)) {
-//     debug("(1 == ecnMode) && (millis() > ecnMillis)");
     debug("Coolant: ", coolantTemp - 40);
     debug("voltage * 10: ", voltage);
 

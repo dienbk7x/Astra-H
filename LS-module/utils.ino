@@ -482,7 +482,8 @@ void lsTopStopSignalSet(bool turnOn) {
   } else {
   flagTopStopSignal = false;
 //  debug("lsTopStopSigna - off);
-//  lsBeep(0x1e, 0x01, 0x33);
+  lsBeep(0x05, 0x01, 0x10);
+  lsBeep(0x05, 0x01, 0x30);
   }
 }
 
@@ -491,6 +492,8 @@ void lsTopStopSignalSet(bool turnOn) {
  */
 void lsCloseWindows() {
   lsTopStopSignalSet(true); // включаю верхний стоп
+  SendCANmessage(0x160, 4, 0x02, 0x80, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
+  delay(200);
   SendCANmessage(0x160, 4, 0x02, 0xC0, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
   delay(4000);
   SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
