@@ -480,11 +480,17 @@ void lsTopStopSignalSet(bool turnOn) {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
   flagTopStopSignal = true;
   } else {
-  flagTopStopSignal = false;
-//  debug("lsTopStopSigna - off);
-  lsBeep(0x05, 0x01, 0x10);
-  lsBeep(0x05, 0x01, 0x30);
+//  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
+//  flagTopStopSignal = false;
   }
+}
+
+/**
+ * Погасить допстоп
+ */
+void lsTopStopSignalUnset() {
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
+  flagTopStopSignal = false;
 }
 
 /**
@@ -493,10 +499,11 @@ void lsTopStopSignalSet(bool turnOn) {
 void lsCloseWindows() {
   lsTopStopSignalSet(true); // включаю верхний стоп
   SendCANmessage(0x160, 4, 0x02, 0x80, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
-  delay(200);
+  delay(500);
   SendCANmessage(0x160, 4, 0x02, 0xC0, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
   delay(4000);
   SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
+  lsTopStopSignalSet(false); // выключаю верхний стоп
 }
 /**
  *  Открыть окна
@@ -504,9 +511,11 @@ void lsCloseWindows() {
 void lsOpenWindows(bool half) {
   int holdDelay = half?2000:4000;
   lsTopStopSignalSet(true); // включаю верхний стоп
+  delay(500);
   SendCANmessage(0x160, 4, 0x02, 0x30, 0x04, 0xFA, 0, 0, 0, 0); // hold open on remote
   delay(holdDelay);
   SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
+  lsTopStopSignalSet(false); // выключаю верхний стоп
 }
 void lsOpenWindows() {
 lsOpenWindows(false);

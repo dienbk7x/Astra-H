@@ -72,7 +72,7 @@ uint8 speed400 = 0; // up to 256
 uint8 speed400Prev = 0; // up to 256
 short dV = 0; // speed increace or decreace
 short dV400 = 0; // speed increace or decreace at 400 ms interval
-long dVMillis = 0;
+long dVMillisPrev = 0;
 long dtSpeed400 = 0;
 float accelG = 0;
 
@@ -161,20 +161,21 @@ if (ECN_SPEED_PLUS == ecnMode) {
       //-------------- process decelerations by 400 ms--------------//
       //--
 
-        dtSpeed400 = millis() - dVMillis;
+        dtSpeed400 = millis() - dVMillisPrev;
         if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
           if (dtSpeed400 < 1000) { // если более 800, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
               lsBeep(0x1e, 0x02, 0x10);
-              debug("DECELERATION");
+//              debug("DECELERATION");
               msg = "DECELERATION";
               lsTopStopSignalSet(true); // включаю верхний стоп
             } else {lsTopStopSignalSet(false);}
 
             // check high deceleration
             accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
+            //  for more accuracy may need to monitor dTAHO/dt but only when transmission is jointed
 
             if ( dV400 < -9 ) {
 //            if ( accelG < -0.50 ) { // при торможении сильнее 0,50 g -- можно и без расчета, по dV400
@@ -183,7 +184,7 @@ if (ECN_SPEED_PLUS == ecnMode) {
             //    -10           ? -0.71
             //     -9     -0.45 ? -0.64
             //     -8     -0.40 ? -0.57
-            //     -7     -0.37 ? -0.50
+            //     -7     -0.44 ? -0.48
             //
               #ifdef DEBUG
 //              debug("back turn lights on");
@@ -195,20 +196,20 @@ if (ECN_SPEED_PLUS == ecnMode) {
             } else {flagFastBraking = false;}
           }
 
-          dVMillis = millis(); //+ 400; // hardcoded interval !! Increment time
+          dVMillisPrev = millis(); //+ 400; // hardcoded interval !! Increment time
           speed400Prev = speed; // запоминаем предыдущее значение скорости
         }
       //--
       //-------------- END process decelerations by 400 ms--------------//
 
         // process low speed < 9 kph  // todo make separate interval.
-        if ((speed < 9) && (false == flagBackwards)) {
-          lsBeep(0x1e, 0x01, 0x10);
+        if ((speed < 7) && (false == flagBackwards)) {
+//          lsBeep(0x1e, 0x01, 0x10);
           debug("LOW SPEED");
           msg = "LOW SPEED";
 
           lsTopStopSignalSet(true); // включаю верхний стоп
-        } else {lsTopStopSignalSet(false);}
+        }
 } /////// end if temp
         // ------ gear ------------
         if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
@@ -273,10 +274,12 @@ if (ECN_SPEED_PLUS == ecnMode) {
             SERIAL.print(";TopStop;");
             SERIAL.print(flagTopStopSignal);
 
+            SERIAL.print(";");
             SERIAL.print(msg);
-            msg = "";
             SERIAL.println(";");
         #endif
+        msg = "";
+        flagTopStopSignal = false;
       }
 
     /*
@@ -307,14 +310,12 @@ if (ECN_SPEED_PLUS == ecnMode) {
 printMsg();
 #endif
       if (r_msg->Data[1]==0x80) { // press close 2-nd time
-        delay(500);
         lsCloseWindows();
 
       } else if ( (r_msg->Data[1]==0x10) || (r_msg->Data[1]==0x20) ) { // press open
         pressOpenCount ++;
       }
       if (pressOpenCount > 1) {
-        delay(500);
         lsOpenWindows();
         pressOpenCount = 0;
       }
