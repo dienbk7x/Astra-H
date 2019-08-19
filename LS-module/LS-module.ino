@@ -3,8 +3,8 @@
 */
 #include <HardwareCAN.h>
 
-#define __VERSION 1.17
-#define __DATE 2019-08-14
+String VERSION = "1.17";
+String DATE = "2019-08-14";
 
 
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -109,7 +109,10 @@ void setup()
   delay(DELAY);
   SERIAL.begin(115200);
   SERIAL.println("Hello World!");
-  SERIAL.println("Starting LS-module v __VERSION __DATE");
+  SERIAL.print("Starting LS-module v ");
+  SERIAL.print(VERSION);
+  SERIAL.print(" ");
+  SERIAL.println(DATE);
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
