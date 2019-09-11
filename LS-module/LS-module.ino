@@ -3,8 +3,8 @@
 */
 #include <HardwareCAN.h>
 
-String VERSION = "1.17";
-String DATE = "2019-08-14";
+String VERSION = "1.18";
+String DATE = "2019-09-11";
 
 
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -43,7 +43,7 @@ enum EcnMode {
   OFF=0, 
   ECN_TEMP_VOLT,      // температура и напряжение 
   ECN_SPEED,          // точная скорость
-  ECN_SPEED_PLUS,          // точная скорость + анализ // todo временно!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ECN_SPEED_PLUS,          // точная скорость + анализ // todo временно
   ECN_DOORS,          // мониторинг дверей
   ECN_RETURN,         // крайний режим для возврата в ноль
   ECN_DOORS_AUTO,     // открытые двери (с возвратом в предыдущий режим)
@@ -180,14 +180,14 @@ if (ECN_SPEED_PLUS == ecnMode) {
             accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
             //  for more accuracy may need to monitor dTAHO/dt but only when transmission is jointed
 
-            if ( dV400 < -9 ) {
+            if ( dV400 < -8 ) {
 //            if ( accelG < -0.50 ) { // при торможении сильнее 0,50 g -- можно и без расчета, по dV400
-            //   dV400    g my  ?  g calc
-            //    -11     -0.55 ? -0.78
-            //    -10           ? -0.71
-            //     -9     -0.45 ? -0.64
-            //     -8     -0.40 ? -0.57
-            //     -7     -0.44 ? -0.48
+            //   dV400   g calc
+            //    -11   -0.78
+            //    -10   -0.71
+            //     -9   -0.64 *
+            //     -8   -0.57
+            //     -7   -0.48
             //
               #ifdef DEBUG
 //              debug("back turn lights on");
