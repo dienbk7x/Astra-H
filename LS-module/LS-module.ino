@@ -169,7 +169,7 @@ void loop()
         case KEY_IGN_ON:
           break;
         case KEY_STARTER_ON:
-          delay(1800);
+          delay(1800); // delay to pass voltage drop at starter run
           break;
         case KEY_STARTER_OFF:
         default:
@@ -183,7 +183,7 @@ void loop()
       speedPrev = speed;
       speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
       dV = speed - speedPrev; // usually 0, 1 or -1
-      flagThrottle = (r_msg->Data[0] & 0x20)?true:false; // или 0x10 ???
+      flagThrottle = (r_msg->Data[0] & 0x20)?true:false; // не жестко соответствует педалированию
 
       if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
 
@@ -191,17 +191,37 @@ if (ECN_SPEED_PLUS == ecnMode) {
       //-------------- process decelerations by 400 ms--------------//
       //--
 
-        dtSpeed400 = millis() - dVMillisPrev;
-        if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
+        // process low speed  //
+        if (speed < 7) {
+
+          if (false == flagBackwards) {
+            msg = "LOW SPEED";
+            lsTopStopSignalSet(true); // включаю верхний стоп
+          }
+
+        } else if (dtSpeed400 > 380) { // если прошло более 400 миллисекунд
+
+          dtSpeed400 = millis() - dVMillisPrev;
+
+          if (true == flagBackwards) {
+            lsTopStopSignalSwitch(); // мигалка стопа на задний ход
+          } else
+
           if (dtSpeed400 < 1000) { // если более 800, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
+
+
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
-              lsBeep(0x1e, 0x02, 0x10);
+              lsBeep(0x10, 0x02, 0x04);
 //              debug("DECELERATION");
               msg = "DECELERATION";
               lsTopStopSignalSet(true); // включаю верхний стоп
-            } else {lsTopStopSignalSet(false);}
+
+            } else if (dV400 > 2) { // тупо разгон пошел
+              msg = "ACCELERATION";
+              lsTopStopSignalSet(false);
+            }
 
             // check high deceleration
             accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
@@ -232,14 +252,6 @@ if (ECN_SPEED_PLUS == ecnMode) {
       //--
       //-------------- END process decelerations by 400 ms--------------//
 
-        // process low speed < 9 kph  // todo make separate interval.
-        if ((speed < 7) && (false == flagBackwards)) {
-//          lsBeep(0x1e, 0x01, 0x10);
-          debug("LOW SPEED");
-          msg = "LOW SPEED";
-
-          lsTopStopSignalSet(true); // включаю верхний стоп
-        }
 } /////// end if temp
         // ------ gear ------------
         if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
@@ -309,7 +321,7 @@ if (ECN_SPEED_PLUS == ecnMode) {
             SERIAL.println(";");
         #endif
         msg = "";
-        flagTopStopSignal = false;
+//        flagTopStopSignal = false;
       }
 
     /*

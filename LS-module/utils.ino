@@ -480,18 +480,25 @@ void lsTopStopSignalSet(bool turnOn) {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
   flagTopStopSignal = true;
   } else {
-//  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
-//  flagTopStopSignal = false;
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
+  flagTopStopSignal = false;
   }
 }
 
 /**
- * Погасить допстоп
+ * Изменить состояние допстоп
  */
+void lsTopStopSignalSwitch() {
+lsTopStopSignalSet(!flagTopStopSignal);
+}
+
+/**
+ * Погасить допстоп
 void lsTopStopSignalUnset() {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
   flagTopStopSignal = false;
 }
+ */
 
 /**
  *  Закрыть окна
