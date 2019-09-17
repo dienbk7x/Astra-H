@@ -2,6 +2,7 @@
    Uses STM32duino with Phono patch. Must add 33 and 95 CAN speeds => Megadrifter's edition
 */
 #include <HardwareCAN.h>
+#include "includes/ls_defines.h"
 
 String VERSION = "1.18";
 String DATE = "2019-09-11";
@@ -113,14 +114,22 @@ void setup()
   SERIAL.print(VERSION);
   SERIAL.print(" ");
   SERIAL.println(DATE);
+  #ifdef DEBUG
   debug("checking debug level");
   debug("checking debug with value", 1);
   debugHex("checking debugHex with value 32", 32);
+  #endif
+  #ifdef LOG
   log("checking log level");
+  #endif
   delay(DELAY);
 
+  #ifdef DEBUG
   debug("Setting globals");
+  #endif
+/////// ============= SET INITIAL MODE HERE =============   ///////
   ecnMode = ECN_TEMP_VOLT;
+
   coolantTemp = 40;
 
   pinMode(PC13, OUTPUT); // LED is ON until end of setup()
@@ -132,7 +141,7 @@ void setup()
   log("Initialization LS CAN ON");
   wakeUpBus();
   lsBeep(2);
-  delay(1000); // time to start engine
+//  delay(1000); // time to start engine
   panelCheck();
   // playWithEcn();
 
@@ -150,13 +159,31 @@ void loop()
       // debug("0x100");
     }// do nothing
 
+    else if (r_msg->ID == LS_ID_KEY) { // key position
+      switch (r_msg->Data[LS_KEY_DATA_BYTE] ) {
+        case KEY_LOCKED:
+          break;
+        case KEY_IGN_OFF:
+          ecnMode = OFF;
+          break;
+        case KEY_IGN_ON:
+          break;
+        case KEY_STARTER_ON:
+          delay(1800);
+          break;
+        case KEY_STARTER_OFF:
+        default:
+          break;
+      }
+    }
+
     else if (r_msg->ID == 0x108) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;
       speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
       dV = speed - speedPrev; // usually 0, 1 or -1
-      flagThrottle = (r_msg->Data[0] & 0x20)?true:false;
+      flagThrottle = (r_msg->Data[0] & 0x20)?true:false; // или 0x10 ???
 
       if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
 
