@@ -188,8 +188,8 @@ void loop()
       if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
 
 if (ECN_SPEED_PLUS == ecnMode) {
-      //-------------- process decelerations by 400 ms--------------//
       //--
+        dtSpeed400 = millis() - dVMillisPrev;
 
         // process low speed  //
         if (speed < 7) {
@@ -199,12 +199,13 @@ if (ECN_SPEED_PLUS == ecnMode) {
             lsTopStopSignalSet(true); // включаю верхний стоп
           }
 
+      //-------------- process decelerations by 400 ms--------------//
         } else if (dtSpeed400 > 380) { // если прошло более 400 миллисекунд
 
-          dtSpeed400 = millis() - dVMillisPrev;
 
           if (true == flagBackwards) {
             lsTopStopSignalSwitch(); // мигалка стопа на задний ход
+            msg = "BACKWARDS";
           } else
 
           if (dtSpeed400 < 1000) { // если более 800, то начинаем сначала без обработки
