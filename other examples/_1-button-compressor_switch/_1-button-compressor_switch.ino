@@ -4,7 +4,7 @@
 */
 /////// === Настройки модуля! === ///////
 // Choose output serial port
-#define SERIAL Serial2
+#define UART Serial2
 // Choose CAN pins
 #define CAN_GPIO_PINS_MS CAN_GPIO_PA11_PA12
 #define CAN_GPIO_PINS_LS CAN_GPIO_PB8_PB9
@@ -25,9 +25,9 @@ CanMsg *r_msg;
 
 void setup()
 {
-  SERIAL.begin(115200); // output to A2 pin
-  SERIAL.println("Hello World!");
-  SERIAL.println("Starting \"1-button-compressor switch plus\" v21 2018-11-22");
+  UART.begin(115200); // output to A2 pin
+  UART.println("Hello World!");
+  UART.println("Starting \"1-button-compressor switch plus\" v21 2018-11-22");
   debug("checking debug level");
   log("checking log level");
 

@@ -1,14 +1,14 @@
 void debug(String str) {
 #ifdef DEBUG
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.println(str);
+  UART.print(millis());
+  UART.print("\t");
+  UART.println(str);
 #endif
 }
 
 void log(String str) {
 #ifdef LOG
-  SERIAL.println(str);
+  UART.println(str);
 #endif
 }
 
@@ -67,30 +67,30 @@ CAN_TX_MBX CANsend(CanMsg *pmsg) // Should be moved to the library?!
 }
 
 /**
-   Print out received message to SERIAL out
+   Print out received message to UART out
 */
 void printMsg(CanMsg *r_msg) {
 #ifdef DEBUG
   digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.print(r_msg->ID, HEX);
-  SERIAL.print(" # ");
-  SERIAL.print(r_msg->Data[0], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[1], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[2], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[3], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[4], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[5], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[6], HEX);
-  SERIAL.print(" ");
-  SERIAL.println(r_msg->Data[7], HEX);
+  UART.print(millis());
+  UART.print("\t");
+  UART.print(r_msg->ID, HEX);
+  UART.print(" # ");
+  UART.print(r_msg->Data[0], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[1], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[2], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[3], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[4], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[5], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[6], HEX);
+  UART.print(" ");
+  UART.println(r_msg->Data[7], HEX);
   digitalWrite(PC13, PC13OFF);
 #endif
 }

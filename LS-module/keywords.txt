@@ -14,4 +14,4 @@ debug	KEYWORD2
 #######################################
 # Constants (LITERAL1)
 #######################################
-SERIAL	LITERAL1
+UART	LITERAL1
