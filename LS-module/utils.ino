@@ -67,7 +67,7 @@ String readUart() {
 //  UART.print("received length: ");
 //  UART.println(buffer.length());
 //#endif
-  flagUartReceived = true;
+//  flagUartReceived = true;
   return buffer;
 }
 
@@ -75,6 +75,7 @@ String readUart() {
 
 void msCANSetup(void)
 {
+  activeBus = MS_BUS;
   CAN_STATUS Stat ;
   afio_init(); // this will restart subsystem and make pins A11A12 work
   // Initialize CAN module
@@ -98,8 +99,9 @@ void msCANSetup(void)
 
 void lsCANSetup(void)
 {
-  afio_init(); // this will restart subsystem and make pins A11A12 work
+  activeBus = LS_BUS;
   CAN_STATUS Stat ;
+  afio_init(); // this will restart subsystem and make pins A11A12 work
   // Initialize CAN module
   canBus.map(CAN_GPIO_PINS_LS);
   Stat = canBus.begin(CAN_SPEED_33, CAN_MODE_NORMAL);
@@ -124,6 +126,18 @@ void lsCANSetup(void)
     digitalWrite(PC13, LOW);
     delay(10000);
     log("Initialization failed");
+  }
+}
+
+
+canRestart(void){
+  switch (activeBus) {
+    case LS_BUS:
+      lsCANSetup();
+      break;
+    case MS_BUS:
+      msCANSetup();
+      break;
   }
 }
 
@@ -186,8 +200,9 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
     canBus.cancel(CAN_TX_MBX1);
     canBus.cancel(CAN_TX_MBX2);
     #ifdef DEBUG
-    UART.print("CAN-Bus send error");
+    UART.print("CAN send error");
     #endif
+    canRestart();
   }
   // Send this frame
 }
@@ -479,9 +494,16 @@ void lsTopStopSignalSet(bool turnOn) {
   if (turnOn) {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
   flagTopStopSignal = true;
+#ifdef DEBUG
+debug("STOP ON");
+#endif
+
   } else {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
   flagTopStopSignal = false;
+#ifdef DEBUG
+debug("STOP OFF");
+#endif
   }
 }
 
@@ -490,6 +512,22 @@ void lsTopStopSignalSet(bool turnOn) {
  */
 void lsTopStopSignalSwitch() {
 lsTopStopSignalSet(!flagTopStopSignal);
+#ifdef DEBUG
+debug("SWITCHING STOP");
+delay(300);
+#endif
+}
+
+/**
+ * Мигнуть допстопом times раз с интервалом del
+ */
+void lsTopStopSignalBlink(byte times, int del) {
+  for (byte i=0;i<times;i++){
+    lsTopStopSignalSet(true);
+    delay(del);
+    lsTopStopSignalSet(false);
+    delay(del);
+  }
 }
 
 /**

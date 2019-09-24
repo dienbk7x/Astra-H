@@ -57,6 +57,12 @@ enum EcnMode {
 byte ecnMode = OFF; // temporary, must be enum for state-machine
 byte savedEcnMode = OFF;
 
+byte activeBus = 0;
+enum ActiveBus {
+  LS_BUS = 1,
+  MS_BUS = 2
+};
+
 long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
@@ -160,6 +166,10 @@ void loop()
     }// do nothing
 //######################################################################################################
     else if (r_msg->ID == LS_ID_KEY) { // key position
+      #ifdef DEBUG
+      printMsg();
+      #endif
+
       switch (r_msg->Data[LS_KEY_DATA_BYTE] ) {
         case KEY_LOCKED:
           break;
@@ -169,6 +179,10 @@ void loop()
         case KEY_IGN_ON:
           break;
         case KEY_STARTER_ON:
+           #ifdef DEBUG
+           debug("KEY_STARTER_ON");
+           #endif
+
           delay(1800); // delay to pass voltage drop at starter run
           lsBeep(1);
           break;
@@ -201,7 +215,11 @@ if (ECN_SPEED_PLUS == ecnMode) {
 
 
           if (true == flagBackwards) {
-            lsTopStopSignalSwitch(); // мигалка стопа на задний ход
+            #ifdef DEBUG
+            debug("BACKW");
+            #endif
+
+            lsTopStopSignalBlink(2, 50); // мигалка стопа на задний ход
             msg = "BACKW";
           } else
 
@@ -504,7 +522,7 @@ printMsg();
     UART.print("Cool;");
     UART.print(coolantTemp - 40);
     UART.print(";Volt;");
-    UART.print(voltage);
+    UART.println(voltage);
     ecnMillis = millis() + ecnWaitTime;
     // process coolant
     uint8 d0 = 0x00; // temp[1,2]
@@ -634,7 +652,7 @@ printMsg();
       } else if (messageUart=="") {
       }
       messageUart = "";
-      flagUartReceived = false;
+//      flagUartReceived = false;
     }
 
 }
