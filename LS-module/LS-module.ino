@@ -63,6 +63,7 @@ enum ActiveBus {
   MS_BUS = 2
 };
 
+uint8 keyState = 0x00;
 long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
@@ -134,7 +135,7 @@ void setup()
   debug("Setting globals");
   #endif
 /////// ============= SET INITIAL MODE HERE =============   ///////
-  ecnMode = ECN_TEMP_VOLT;
+//  ecnMode = ECN_TEMP_VOLT;
 
   coolantTemp = 40;
 
@@ -170,29 +171,37 @@ void loop()
       printMsg();
       #endif
 
-      switch (r_msg->Data[LS_KEY_DATA_BYTE] ) {
+      keyState = r_msg->Data[LS_KEY_DATA_BYTE];
+      switch (keyState) {
+
         case KEY_LOCKED:
-          break;
-        case KEY_IGN_OFF:
           ecnMode = OFF;
           break;
-        case KEY_IGN_ON:
+
+        case KEY_IGN_OFF:
           break;
+
+        case KEY_IGN_ON:
+          ecnMode = ECN_TEMP_VOLT;
+          break;
+
         case KEY_STARTER_ON:
            #ifdef DEBUG
            debug("KEY_STARTER_ON");
            #endif
-
           delay(1800); // delay to pass voltage drop at starter run
           lsBeep(1);
           break;
+
         case KEY_STARTER_OFF:
+          break;
+
         default:
           break;
       }
     }
 //######################################################################################################
-    else if (r_msg->ID == 0x108) { // speed + taho
+    else if ((r_msg->ID == 0x108) && (keyState & KEY_IGN) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;
@@ -200,9 +209,7 @@ void loop()
       dV = speed - speedPrev; // usually 0, 1 or -1
       flagThrottle = (r_msg->Data[0] & 0x20)?true:false; // не жестко соответствует педалированию
 
-      if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
 
-if (ECN_SPEED_PLUS == ecnMode) {
       //--
         dtSpeed400 = millis() - dVMillisPrev;
 
@@ -230,8 +237,11 @@ if (ECN_SPEED_PLUS == ecnMode) {
 
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
-              lsBeep(0x1e, 0x02, 0x04);
               msg = "DECEL";
+              lsTopStopSignalSet(true); // включаю верхний стоп
+            } else if ((dV400 < -1) && (flagThrottle == false) && (ECN_SPEED_PLUS == ecnMode)) { // если торможение двигателем
+              lsBeep(0x1e, 0x02, 0x04);
+              msg = "DECEL" + "2";
               lsTopStopSignalSet(true); // включаю верхний стоп
 
             } else if (dV400 > 0) { // тупо разгон пошел
@@ -254,7 +264,9 @@ if (ECN_SPEED_PLUS == ecnMode) {
             //
               #ifdef DEBUG
 //              debug("back turn lights on");
+if (ECN_SPEED_PLUS == ecnMode) {
               lsBeep(0x04);
+} /////// end if ECN_MODE_PLUS
               msg = "EMRBR";
               #endif
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
@@ -267,8 +279,7 @@ if (ECN_SPEED_PLUS == ecnMode) {
         }
       //--
       //-------------- END process decelerations by 400 ms--------------//
-
-} /////// end if temp
+      if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
         // ------ gear ------------
         if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
           gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
@@ -422,6 +433,7 @@ printMsg();
         if (flagButtonPressed) {
         // ничего не делаем до отпускания
         } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
+        // косяк, что отпускание всегда отключает режим!
           ecnMode = OFF;
           flagButtonPressed = true;
           log("ECN mode off");
