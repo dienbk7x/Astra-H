@@ -239,7 +239,7 @@ void loop()
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
               msg = "DECEL";
               lsTopStopSignalSet(true); // включаю верхний стоп
-            } else if ((dV400 < -1) && (flagThrottle == false) && (ECN_SPEED_PLUS == ecnMode)) { // если торможение двигателем
+            } else if ((dV400 < -1) && (ECN_SPEED_PLUS == ecnMode)) { // если торможение двигателем
               lsBeep(0x1e, 0x02, 0x04);
               msg = "DECEL2";
               lsTopStopSignalSet(true); // включаю верхний стоп
