@@ -169,22 +169,30 @@ void loop()
     }// do nothing
 //######################################################################################################
     else if (r_msg->ID == LS_ID_KEY) { // key position
+
       #ifdef DEBUG
       printMsg();
+      UART.print("keyState ");
+      UART.print(keyState);
+      UART.print("; keyState & KEY_IGN ");
+      UART.print(keyState & KEY_IGN);
+      UART.print("; keyState & KEY_IGN == 0x04 ");
+      UART.println((keyState & KEY_IGN) == 0x04);
       #endif
 
       keyState = r_msg->Data[LS_KEY_DATA_BYTE];
-      switch (keyState) {
 
+      switch (keyState) {
+// todo add previous state to see change
         case KEY_LOCKED:
-          ecnMode = OFF;
+//          ecnMode = OFF;
           break;
 
         case KEY_IGN_OFF:
           break;
 
         case KEY_IGN_ON:
-          ecnMode = ECN_TEMP_VOLT;
+//          ecnMode = ECN_TEMP_VOLT;
           break;
 
         case KEY_STARTER_ON:
@@ -203,7 +211,7 @@ void loop()
       }
     }
 //######################################################################################################
-    else if ((r_msg->ID == 0x108) && (keyState & KEY_IGN)) { // speed + taho
+    else if ((r_msg->ID == 0x108) /*&& (keyState & KEY_IGN)*/ ) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;
@@ -344,6 +352,8 @@ if (ECN_SPEED_PLUS == ecnMode) {
             UART.print(flagFastBraking);
             UART.print(";TopStop;");
             UART.print(flagTopStopSignal);
+            UART.print(";keyState;");
+            UART.print(keyState);
 
             UART.print(";");
             UART.print(msg);
