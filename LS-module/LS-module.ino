@@ -201,7 +201,7 @@ void loop()
       }
     }
 //######################################################################################################
-    else if ((r_msg->ID == 0x108) && (keyState & KEY_IGN) { // speed + taho
+    else if ((r_msg->ID == 0x108) && (keyState & KEY_IGN)) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;
@@ -241,7 +241,7 @@ void loop()
               lsTopStopSignalSet(true); // включаю верхний стоп
             } else if ((dV400 < -1) && (flagThrottle == false) && (ECN_SPEED_PLUS == ecnMode)) { // если торможение двигателем
               lsBeep(0x1e, 0x02, 0x04);
-              msg = "DECEL" + "2";
+              msg = "DECEL2";
               lsTopStopSignalSet(true); // включаю верхний стоп
 
             } else if (dV400 > 0) { // тупо разгон пошел

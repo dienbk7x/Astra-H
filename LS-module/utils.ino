@@ -130,7 +130,7 @@ void lsCANSetup(void)
 }
 
 
-canRestart(void){
+void canRestart(void){
   switch (activeBus) {
     case LS_BUS:
       lsCANSetup();
