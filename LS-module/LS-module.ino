@@ -7,7 +7,7 @@
 String VERSION = "1.18";
 String DATE = "2019-09-11";
 
-
+//#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
 
 // Uncomment to enable 'debug()' messages output
@@ -149,7 +149,9 @@ void setup()
   wakeUpBus();
   lsBeep(2);
 //  delay(1000); // time to start engine
+  #ifdef ARROWS_TEST 
   panelCheck();
+  #endif
   // playWithEcn();
 
   digitalWrite(PC13, PC13OFF);
