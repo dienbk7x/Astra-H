@@ -64,6 +64,10 @@ enum ActiveBus {
 };
 
 uint8 keyState = 0x00;
+char keyNum = 0;
+byte keyCode0 = 0x00;
+byte keyCode1 = 0x00;
+
 long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
@@ -399,6 +403,10 @@ if (ECN_SPEED_PLUS == ecnMode) {
 #ifdef DEBUG
 printMsg();
 #endif
+      keyNum = r_msg->Data[0];
+      keyCode0 = r_msg->Data[2];
+      keyCode1 = r_msg->Data[3];
+
       if (r_msg->Data[1]==0x80) { // press close 2-nd time
         lsCloseWindows();
 
