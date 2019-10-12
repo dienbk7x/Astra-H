@@ -496,16 +496,16 @@ void lsTopStopSignalSet(bool turnOn) {
   if (turnOn) {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
   flagTopStopSignal = true;
-#ifdef DEBUG
-debug("STOP ON");
-#endif
+//#ifdef DEBUG
+//debug("STOP ON");
+//#endif
 
   } else {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
   flagTopStopSignal = false;
-#ifdef DEBUG
-debug("STOP OFF");
-#endif
+//#ifdef DEBUG
+//debug("STOP OFF");
+//#endif
   }
 }
 
@@ -514,10 +514,10 @@ debug("STOP OFF");
  */
 void lsTopStopSignalSwitch() {
 lsTopStopSignalSet(!flagTopStopSignal);
-#ifdef DEBUG
-debug("SWITCHING STOP");
-delay(300);
-#endif
+//#ifdef DEBUG
+//debug("SWITCHING STOP");
+//delay(300);
+//#endif
 }
 
 /**

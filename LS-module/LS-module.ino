@@ -179,16 +179,6 @@ void loop()
          {
            keyState = r_msg->Data[LS_KEY_DATA_BYTE];
 
-           #ifdef DEBUG
-           printMsg();
-           UART.print("keyState ");
-           UART.print(keyState);
-           UART.print("; keyState & KEY_IGN ");
-           UART.print(keyState & KEY_IGN);
-           UART.print("; keyState & KEY_IGN == 0x04 ");
-           UART.println((keyState & KEY_IGN) == 0x04);
-           #endif
-
            switch (keyState) {
     //      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
             case 0:
@@ -223,7 +213,7 @@ void loop()
       }
     }
 //######################################################################################################
-    else if ((r_msg->ID == 0x108) /*&& (keyState & KEY_IGN)*/ ) { // speed + taho
+    else if ((r_msg->ID == 0x108) /*&& ((keyState & KEY_IGN) == KEY_IGN)*/ ) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;

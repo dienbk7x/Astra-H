@@ -14,9 +14,9 @@
 #define KEY_IGN_OFF 0x72
 #define KEY_UNLOCKED 0x72
 
+#define KEY_IGN 0x04
 // ignition just swithed on
 #define KEY_IGN_ON 0x74
-#define KEY_IGN 0x04
 // ignition is on, 3 seconds passed? need to clarify!
 #define KEY_STARTER_OFF 0x54
 
