@@ -118,6 +118,7 @@ void lsCANSetup(void)
    canBus.filter(6, 0x350 << 21, 0xFFFFFFFF) ; // backwards drive direction
    canBus.filter(7, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(8, 0x500 << 21, 0xFFFFFFFF) ; // voltage
+   canBus.filter(9, 0x170 << 21, 0xFFFFFFFF) ; // KEY
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();

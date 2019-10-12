@@ -4,8 +4,8 @@
 #include <HardwareCAN.h>
 #include "includes/ls_defines.h"
 
-String VERSION = "1.18";
-String DATE = "2019-09-11";
+String VERSION = "1.19";
+String DATE = "2019-10-11";
 
 //#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -168,7 +168,10 @@ void loop()
       // debug("0x100");
     }// do nothing
 //######################################################################################################
-    else if (r_msg->ID == LS_ID_KEY) { // key position
+    // else if (r_msg->ID == LS_ID_KEY) { // key position
+    else if (r_msg->ID == 0x170) { // key position
+
+      keyState = r_msg->Data[LS_KEY_DATA_BYTE];
 
       #ifdef DEBUG
       printMsg();
@@ -180,10 +183,13 @@ void loop()
       UART.println((keyState & KEY_IGN) == 0x04);
       #endif
 
-      keyState = r_msg->Data[LS_KEY_DATA_BYTE];
-
-      switch (keyState) {
+      // switch (keyState) {
+      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
 // todo add previous state to see change
+        case 0:
+          UART.print("keyState not set!!");
+          break;
+
         case KEY_LOCKED:
 //          ecnMode = OFF;
           break;
@@ -224,7 +230,7 @@ void loop()
         dtSpeed400 = millis() - dVMillisPrev;
 
         // process low speed  //
-        if ((speed < 7) && !flagBackwards) {
+        if ((speed < 6) && !flagBackwards) {
             msg = "LOWSP";
             lsTopStopSignalSet(true); // включаю верхний стоп
 
@@ -323,6 +329,7 @@ if (ECN_SPEED_PLUS == ecnMode) {
         lsShowEcnDecimal(gears, speed);
 
         #ifdef DEBUG
+        // todo add logTimeout, log
             UART.print(millis());
             UART.print(";tah;");
             UART.print(taho);

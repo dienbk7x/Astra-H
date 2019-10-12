@@ -1,12 +1,14 @@
 #define LS_ID_KEY 0x170
 
-#define LS_KEY_DATA_BYTE 0x00
+#define LS_KEY_DATA_BYTE 0
 
 // no key
 #define KEY_OUT 0x30
+// or 0x20
 
 // key in , +0x160#02.00.xx.xx
 #define KEY_LOCKED 0x70
+// or 0x60
 #define KEY_IN 0x70
 // unlocked, wake up
 #define KEY_IGN_OFF 0x72
