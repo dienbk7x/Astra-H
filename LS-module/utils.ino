@@ -546,11 +546,11 @@ void lsTopStopSignalUnset() {
  */
 void lsCloseWindows() {
   lsTopStopSignalSet(true); // включаю верхний стоп
-  SendCANmessage(0x160, keyNum, 0x02, 0x80, keyCode0, keyCode1, 0, 0, 0, 0); // hold close on remote
+  SendCANmessage(0x160, 4, keyNum, 0x80, keyCode0, keyCode1, 0, 0, 0, 0); // hold close on remote
   delay(500);
-  SendCANmessage(0x160, keyNum, 0x02, 0xC0, keyCode0, keyCode1, 0, 0, 0, 0); // hold close on remote
+  SendCANmessage(0x160, 4, keyNum, 0xC0, keyCode0, keyCode1, 0, 0, 0, 0); // hold close on remote
   delay(4000);
-  SendCANmessage(0x160, keyNum, 0x02, 0x00, keyCode0, keyCode1, 0, 0, 0, 0); //release on remote
+  SendCANmessage(0x160, 4, keyNum, 0x00, keyCode0, keyCode1, 0, 0, 0, 0); //release on remote
   lsTopStopSignalSet(false); // выключаю верхний стоп
 }
 /**
@@ -560,9 +560,9 @@ void lsOpenWindows(bool half) {
   int holdDelay = half?2000:4000;
   lsTopStopSignalSet(true); // включаю верхний стоп
   delay(500);
-  SendCANmessage(0x160, keyNum, 0x02, 0x30, keyCode0, keyCode1, 0, 0, 0, 0); // hold open on remote
+  SendCANmessage(0x160, 4, keyNum, 0x30, keyCode0, keyCode1, 0, 0, 0, 0); // hold open on remote
   delay(holdDelay);
-  SendCANmessage(0x160, keyNum, 0x02, 0x00, keyCode0, keyCode1, 0, 0, 0, 0); //release on remote
+  SendCANmessage(0x160, 4, keyNum, 0x00, keyCode0, keyCode1, 0, 0, 0, 0); //release on remote
   lsTopStopSignalSet(false); // выключаю верхний стоп
 }
 void lsOpenWindows() {

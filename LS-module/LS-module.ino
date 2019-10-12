@@ -172,52 +172,54 @@ void loop()
       // debug("0x100");
     }// do nothing
 //######################################################################################################
-    // else if (r_msg->ID == LS_ID_KEY) { // key position
-    else if (r_msg->ID == 0x170) { // key position
+     else if (r_msg->ID == LS_ID_KEY)
+     { // key position
+//    else if (r_msg->ID == 0x170) { // key position
+         if (keyState != r_msg->Data[LS_KEY_DATA_BYTE])
+         {
+           keyState = r_msg->Data[LS_KEY_DATA_BYTE];
 
-      keyState = r_msg->Data[LS_KEY_DATA_BYTE];
-
-      #ifdef DEBUG
-      printMsg();
-      UART.print("keyState ");
-      UART.print(keyState);
-      UART.print("; keyState & KEY_IGN ");
-      UART.print(keyState & KEY_IGN);
-      UART.print("; keyState & KEY_IGN == 0x04 ");
-      UART.println((keyState & KEY_IGN) == 0x04);
-      #endif
-
-      // switch (keyState) {
-      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
-// todo add previous state to see change
-        case 0:
-          UART.print("keyState not set!!");
-          break;
-
-        case KEY_LOCKED:
-//          ecnMode = OFF;
-          break;
-
-        case KEY_IGN_OFF:
-          break;
-
-        case KEY_IGN_ON:
-//          ecnMode = ECN_TEMP_VOLT;
-          break;
-
-        case KEY_STARTER_ON:
            #ifdef DEBUG
-           debug("KEY_STARTER_ON");
+           printMsg();
+           UART.print("keyState ");
+           UART.print(keyState);
+           UART.print("; keyState & KEY_IGN ");
+           UART.print(keyState & KEY_IGN);
+           UART.print("; keyState & KEY_IGN == 0x04 ");
+           UART.println((keyState & KEY_IGN) == 0x04);
            #endif
-          delay(1800); // delay to pass voltage drop at starter run
-          lsBeep(1);
-          break;
 
-        case KEY_STARTER_OFF:
-          break;
+           switch (keyState) {
+    //      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
+            case 0:
+              UART.print("keyState not set!!");
+              break;
 
-        default:
-          break;
+            case KEY_LOCKED:
+              ecnMode = OFF;
+              break;
+
+            case KEY_IGN_OFF:
+              break;
+
+            case KEY_IGN_ON:
+              ecnMode = ECN_TEMP_VOLT;
+              break;
+
+            case KEY_STARTER_ON:
+               #ifdef DEBUG
+               debug("KEY_STARTER_ON");
+               #endif
+              delay(1800); // delay to pass voltage drop at starter run
+              lsBeep(1);
+              break;
+
+            case KEY_STARTER_OFF:
+              break;
+
+            default:
+              break;
+          }
       }
     }
 //######################################################################################################
@@ -489,7 +491,6 @@ printMsg();
         if (r_msg->Data[1] & 0x10) {d2 += 0xb0;}  // 1000b0
         lsShowEcn(d0, d1, d2);
       } else { // другой режим -- тогда <при открытых> переключаем на авто
-//        todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
           if (flagDoorsAcknowledge == false) {
             savedEcnMode = ecnMode;
             ecnMode = ECN_DOORS_AUTO;
