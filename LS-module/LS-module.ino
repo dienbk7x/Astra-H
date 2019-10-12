@@ -4,10 +4,10 @@
 #include <HardwareCAN.h>
 #include "includes/ls_defines.h"
 
-String VERSION = "1.18";
-String DATE = "2019-09-11";
+String VERSION = "1.19";
+String DATE = "2019-10-11";
 
-
+//#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
 
 // Uncomment to enable 'debug()' messages output
@@ -17,7 +17,7 @@ String DATE = "2019-09-11";
 #define LOG
 
 // Choose output serial port
-#define SERIAL Serial2
+#define UART Serial2
 
 // Set timeout for sending CAN messages
 #define CAN_SEND_TIMEOUT 200
@@ -57,6 +57,13 @@ enum EcnMode {
 byte ecnMode = OFF; // temporary, must be enum for state-machine
 byte savedEcnMode = OFF;
 
+byte activeBus = 0;
+enum ActiveBus {
+  LS_BUS = 1,
+  MS_BUS = 2
+};
+
+uint8 keyState = 0x00;
 long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
@@ -108,12 +115,12 @@ CanMsg *r_msg;
 void setup()
 {
   delay(DELAY);
-  SERIAL.begin(115200);
-  SERIAL.println("Hello World!");
-  SERIAL.print("Starting LS-module v ");
-  SERIAL.print(VERSION);
-  SERIAL.print(" ");
-  SERIAL.println(DATE);
+  UART.begin(115200);
+  UART.println("Hello World!");
+  UART.print("Starting LS-module v ");
+  UART.print(VERSION);
+  UART.print(" ");
+  UART.println(DATE);
   #ifdef DEBUG
   debug("checking debug level");
   debug("checking debug with value", 1);
@@ -128,7 +135,7 @@ void setup()
   debug("Setting globals");
   #endif
 /////// ============= SET INITIAL MODE HERE =============   ///////
-  ecnMode = ECN_TEMP_VOLT;
+//  ecnMode = ECN_TEMP_VOLT;
 
   coolantTemp = 40;
 
@@ -142,7 +149,9 @@ void setup()
   wakeUpBus();
   lsBeep(2);
 //  delay(1000); // time to start engine
+  #ifdef ARROWS_TEST 
   panelCheck();
+  #endif
   // playWithEcn();
 
   digitalWrite(PC13, PC13OFF);
@@ -158,50 +167,103 @@ void loop()
     if (r_msg->ID == 0x100) { // wake-up message
       // debug("0x100");
     }// do nothing
+//######################################################################################################
+    // else if (r_msg->ID == LS_ID_KEY) { // key position
+    else if (r_msg->ID == 0x170) { // key position
 
-    else if (r_msg->ID == LS_ID_KEY) { // key position
-      switch (r_msg->Data[LS_KEY_DATA_BYTE] ) {
+      keyState = r_msg->Data[LS_KEY_DATA_BYTE];
+
+      #ifdef DEBUG
+      printMsg();
+      UART.print("keyState ");
+      UART.print(keyState);
+      UART.print("; keyState & KEY_IGN ");
+      UART.print(keyState & KEY_IGN);
+      UART.print("; keyState & KEY_IGN == 0x04 ");
+      UART.println((keyState & KEY_IGN) == 0x04);
+      #endif
+
+      // switch (keyState) {
+      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
+// todo add previous state to see change
+        case 0:
+          UART.print("keyState not set!!");
+          break;
+
         case KEY_LOCKED:
+//          ecnMode = OFF;
           break;
+
         case KEY_IGN_OFF:
-          ecnMode = OFF;
           break;
+
         case KEY_IGN_ON:
+//          ecnMode = ECN_TEMP_VOLT;
           break;
+
         case KEY_STARTER_ON:
-          delay(1800);
+           #ifdef DEBUG
+           debug("KEY_STARTER_ON");
+           #endif
+          delay(1800); // delay to pass voltage drop at starter run
+          lsBeep(1);
           break;
+
         case KEY_STARTER_OFF:
+          break;
+
         default:
           break;
       }
     }
-
-    else if (r_msg->ID == 0x108) { // speed + taho
+//######################################################################################################
+    else if ((r_msg->ID == 0x108) /*&& (keyState & KEY_IGN)*/ ) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;
       speed = (r_msg->Data[4]<<1) + (r_msg->Data[5]>>7);
       dV = speed - speedPrev; // usually 0, 1 or -1
-      flagThrottle = (r_msg->Data[0] & 0x20)?true:false; // или 0x10 ???
+      flagThrottle = (r_msg->Data[0] & 0x20)?true:false; // не жестко соответствует педалированию
 
-      if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
 
-if (ECN_SPEED_PLUS == ecnMode) {
-      //-------------- process decelerations by 400 ms--------------//
       //--
-
         dtSpeed400 = millis() - dVMillisPrev;
-        if (dtSpeed400 > 400) { // если прошло более 400 миллисекунд
+
+        // process low speed  //
+        if ((speed < 6) && !flagBackwards) {
+            msg = "LOWSP";
+            lsTopStopSignalSet(true); // включаю верхний стоп
+
+        } else if (dtSpeed400 > 380) { // если прошло 400 и более миллисекунд
+
+
+          if (true == flagBackwards) {
+            #ifdef DEBUG
+            debug("BACKW");
+            #endif
+
+            lsTopStopSignalBlink(2, 50); // мигалка стопа на задний ход
+            msg = "BACKW";
+          } else
+
+      //-------------- process decelerations by 400 ms--------------//
           if (dtSpeed400 < 1000) { // если более 800, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
+
+
             // check for speed down without active braking and with released throttle
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
-              lsBeep(0x1e, 0x02, 0x10);
-//              debug("DECELERATION");
-              msg = "DECELERATION";
+              msg = "DECEL";
               lsTopStopSignalSet(true); // включаю верхний стоп
-            } else {lsTopStopSignalSet(false);}
+            } else if ((dV400 < -1) && (ECN_SPEED_PLUS == ecnMode)) { // если торможение двигателем
+              lsBeep(0x1e, 0x02, 0x04);
+              msg = "DECEL2";
+              lsTopStopSignalSet(true); // включаю верхний стоп
+
+            } else if (dV400 > 0) { // тупо разгон пошел
+              msg = "ACCEL";
+              lsTopStopSignalSet(false);
+            }
 
             // check high deceleration
             accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
@@ -218,8 +280,10 @@ if (ECN_SPEED_PLUS == ecnMode) {
             //
               #ifdef DEBUG
 //              debug("back turn lights on");
+if (ECN_SPEED_PLUS == ecnMode) {
               lsBeep(0x04);
-              msg = "EMERGENCY BRAKE";
+} /////// end if ECN_MODE_PLUS
+              msg = "EMRBR";
               #endif
               lsBackTurnLights1000(); // зажечь задние поворотники на 1000 мс
               flagFastBraking = true;
@@ -231,16 +295,7 @@ if (ECN_SPEED_PLUS == ecnMode) {
         }
       //--
       //-------------- END process decelerations by 400 ms--------------//
-
-        // process low speed < 9 kph  // todo make separate interval.
-        if ((speed < 7) && (false == flagBackwards)) {
-//          lsBeep(0x1e, 0x01, 0x10);
-          debug("LOW SPEED");
-          msg = "LOW SPEED";
-
-          lsTopStopSignalSet(true); // включаю верхний стоп
-        }
-} /////// end if temp
+      if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
         // ------ gear ------------
         if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
           gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
@@ -274,42 +329,45 @@ if (ECN_SPEED_PLUS == ecnMode) {
         lsShowEcnDecimal(gears, speed);
 
         #ifdef DEBUG
-            SERIAL.print(millis());
-            SERIAL.print(";tah;");
-            SERIAL.print(taho);
-            SERIAL.print(";spd;");
-            SERIAL.print(speed);
+        // todo add logTimeout, log
+            UART.print(millis());
+            UART.print(";tah;");
+            UART.print(taho);
+            UART.print(";spd;");
+            UART.print(speed);
 
-//            SERIAL.print(";gearFactor;");
-//            SERIAL.print(gearFactor);
-            SERIAL.print(";gear;");
-            SERIAL.print(gear);
+//            UART.print(";gearFactor;");
+//            UART.print(gearFactor);
+            UART.print(";gear;");
+            UART.print(gear);
 
-            SERIAL.print(";dV;");
-            SERIAL.print(dV);
-            SERIAL.print(";dV400;");
-            SERIAL.print(dV400);
-            SERIAL.print(";dt400;");
-            SERIAL.print(dtSpeed400);
-            SERIAL.print(";g;");
-            SERIAL.print(accelG);
+            UART.print(";dV;");
+            UART.print(dV);
+            UART.print(";dV400;");
+            UART.print(dV400);
+            UART.print(";dt400;");
+            UART.print(dtSpeed400);
+            UART.print(";g;");
+            UART.print(accelG);
 
-            SERIAL.print(";Gas;");
-            SERIAL.print(flagThrottle); // ?"1":"0"
-            SERIAL.print(";Backw;");
-            SERIAL.print(flagBackwards);
+            UART.print(";Gas;");
+            UART.print(flagThrottle); // ?"1":"0"
+            UART.print(";Backw;");
+            UART.print(flagBackwards);
 
-            SERIAL.print(";EmBrk;");
-            SERIAL.print(flagFastBraking);
-            SERIAL.print(";TopStop;");
-            SERIAL.print(flagTopStopSignal);
+            UART.print(";EmBrk;");
+            UART.print(flagFastBraking);
+            UART.print(";TopStop;");
+            UART.print(flagTopStopSignal);
+            UART.print(";keyState;");
+            UART.print(keyState);
 
-            SERIAL.print(";");
-            SERIAL.print(msg);
-            SERIAL.println(";");
+            UART.print(";");
+            UART.print(msg);
+            UART.println(";");
         #endif
-        msg = "";
-        flagTopStopSignal = false;
+        msg = "     ";
+//        flagTopStopSignal = false;
       }
 
     /*
@@ -328,13 +386,15 @@ if (ECN_SPEED_PLUS == ecnMode) {
                                   3C = отпустить
     */
 
+//######################################################################################################
     } else if (r_msg->ID == 0x145) { // engine tempr
       if (ECN_TEMP_VOLT == ecnMode) {
         // debug("mode = ", ecnMode);
         coolantTemp = r_msg->Data[3];
       }
 
-    // закрытие стекол по троекратному нажатию закрывания.
+//######################################################################################################
+    // закрытие стекол при постановке на охрану.
     } else if (r_msg->ID == 0x160) { // open/close from distance
 #ifdef DEBUG
 printMsg();
@@ -342,14 +402,15 @@ printMsg();
       if (r_msg->Data[1]==0x80) { // press close 2-nd time
         lsCloseWindows();
 
-      } else if ( (r_msg->Data[1]==0x10) || (r_msg->Data[1]==0x20) ) { // press open
-        pressOpenCount ++;
-      }
-      if (pressOpenCount > 1) {
-        lsOpenWindows();
-        pressOpenCount = 0;
+      } else if (r_msg->Data[1]==0x20)  { // press open 2-nd time
+//        pressOpenCount ++;
+//      }
+//      if (pressOpenCount > 1) {
+        lsOpenWindows(true); // half open
+//        pressOpenCount = 0;
       }
 
+//######################################################################################################
     } else if (r_msg->ID == 0x175) { // Steering wheel buttons
       // debug("Steering wheel buttons");
 
@@ -391,6 +452,7 @@ printMsg();
         if (flagButtonPressed) {
         // ничего не делаем до отпускания
         } else { // если не была нажата, то переключаем и ставим флаг, что нажата кнопка
+        // косяк, что отпускание всегда отключает режим!
           ecnMode = OFF;
           flagButtonPressed = true;
           log("ECN mode off");
@@ -403,6 +465,7 @@ printMsg();
         flagButtonPressed = false;
       }
 
+//######################################################################################################
     } else if (r_msg->ID == 0x230) { // doors status
 
       if ( (ECN_DOORS == ecnMode) || (ecnMode == ECN_DOORS_AUTO) ) { // режим дверей? тогда выводим
@@ -441,6 +504,7 @@ printMsg();
 задние пассажирские в data[1]
 */
     
+//######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
       if ((r_msg->Data[0]) & 0x10) {
         flagBackwards = true;
@@ -448,6 +512,7 @@ printMsg();
         flagBackwards = false;
       }
 
+//######################################################################################################
     } else if (r_msg->ID == 0x370) {
       // debug("handbrake, fog lights, etc...");
       if ((r_msg->Data[1]) & 0x01) {
@@ -462,6 +527,7 @@ printMsg();
         }
       }
 
+//######################################################################################################
     } else if (r_msg->ID == 0x500) { // voltage
       // debug("voltage");
       if (ECN_TEMP_VOLT== ecnMode) {
@@ -471,18 +537,23 @@ printMsg();
       //========================
       //    } else if (r_msg->ID == 0x) {
       //if (r_msg->Data[1])
+//######################################################################################################
     } else {
     }  // end if
+//######################################################################################################
+//######################################################################################################
 
     canBus.free();
 
   }
   // close while
   // ======== check flags and execute actions ======================================================================
+//######################################################################################################
   if ((ECN_TEMP_VOLT == ecnMode) && (millis() > ecnMillis)) {
-    debug("Coolant: ", coolantTemp - 40);
-    debug("voltage * 10: ", voltage);
-
+    UART.print("Cool;");
+    UART.print(coolantTemp - 40);
+    UART.print(";Volt;");
+    UART.println(voltage);
     ecnMillis = millis() + ecnWaitTime;
     // process coolant
     uint8 d0 = 0x00; // temp[1,2]
@@ -532,24 +603,29 @@ printMsg();
       uint8 toTaho = (voltage>100)?(voltage-100):0;
       tahometer(toTaho);
     }
+//######################################################################################################
   } else if (ECN_DOORS == ecnMode) {
     // lsShowEcn(0x0d, r_msg->Data[2], r_msg->Data[3]); // уже выводится сразу же
+//######################################################################################################
   } else if (ECN_RETURN == ecnMode) {
     ecnMode = OFF; 
     lsShowEcn(0x0F, 0xF0, 0xFF);
+//######################################################################################################
   } else if (ECN_STROBS == ecnMode) {
     lsDoStrob();
   }
+//######################################################################################################
+//######################################################################################################
 
-  // ======== Receive a message from SERIAL =======================================================================
-    if ((millis() - timeUart > 200) && (!flagUartReceived)) {   //delay needed to fillup buffers
-      messageUart = readUart();
-//      flagUartReceived = true;
-      timeUart = millis();
-    }
-    if ((messageUart != "")) { // recognize and execute command
-  SERIAL.print("received message: ");
-  SERIAL.println(messageUart);
+  // ======== Receive a message from UART =======================================================================
+  if ((millis() - timeUart > 200) && (!flagUartReceived)) {   //delay needed to fillup buffers
+    messageUart = readUart();
+//    flagUartReceived = true;
+    timeUart = millis();
+  }
+  if ((messageUart != "")) { // recognize and execute command
+  UART.print("received message: ");
+  UART.println(messageUart);
       if (messageUart=="help") {
         ecnMode = 0;
         log(line10);
@@ -564,6 +640,7 @@ printMsg();
         log("lsDoThanks");
         log("BackTurn1000");
         log("lsTopStopSignalSet");
+        log("lsTopStopSignalSwitch");
         log("lsDoStrob");
         log("lsCloseWindows");
         log("lsOpenWindows");
@@ -592,6 +669,8 @@ printMsg();
         lsBackTurnLights1000();
       } else if (messageUart=="lsTopStopSignalSet") {
         lsTopStopSignalSet(true);
+      } else if (messageUart=="lsTopStopSignalSwitch") {
+        lsTopStopSignalSwitch();
       } else if (messageUart=="lsCloseWindows") {
         lsCloseWindows();
       } else if (messageUart=="lsOpenWindows") {
@@ -604,6 +683,7 @@ printMsg();
       } else if (messageUart=="") {
       }
       messageUart = "";
+//      flagUartReceived = false;
     }
 
 }

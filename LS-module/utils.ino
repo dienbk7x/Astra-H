@@ -7,9 +7,9 @@
 */
 void debug(String str) {
 #ifdef DEBUG
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.println(str);
+  UART.print(millis());
+  UART.print("\t");
+  UART.println(str);
 #endif
 }
 
@@ -18,11 +18,11 @@ void debug(String str) {
  */
 void debug(String str, int val) {
 #ifdef DEBUG
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.print(str);
-  SERIAL.print("\t");
-  SERIAL.println(val);
+  UART.print(millis());
+  UART.print("\t");
+  UART.print(str);
+  UART.print("\t");
+  UART.println(val);
 #endif
 }
 
@@ -31,11 +31,11 @@ void debug(String str, int val) {
  */
 void debugHex(String str, int val) {
 #ifdef DEBUG    
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.print(str);
-  SERIAL.print("\t");
-  SERIAL.println(val, HEX);
+  UART.print(millis());
+  UART.print("\t");
+  UART.print(str);
+  UART.print("\t");
+  UART.println(val, HEX);
 #endif
 }
 
@@ -44,9 +44,9 @@ void debugHex(String str, int val) {
  */
 void log(String str) {
 #ifdef LOG
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.println(str);
+  UART.print(millis());
+  UART.print("\t");
+  UART.println(str);
 #endif
 }
 
@@ -56,16 +56,16 @@ void log(String str) {
 String readUart() {
   String buffer;
   char u;
-  while (SERIAL.available() > 0 && u != '\n') { //read serial buffer until \n
-    char u = SERIAL.read();
+  while (UART.available() > 0 && u != '\n') { //read serial buffer until \n
+    char u = UART.read();
     if ((u != 0xD)) buffer += u;  // skip \r
   }
   buffer.remove(buffer.length() - 1);
 //#ifdef DEBUG
-//  SERIAL.print("received message: ");
-//  SERIAL.println(buffer);
-//  SERIAL.print("received length: ");
-//  SERIAL.println(buffer.length());
+//  UART.print("received message: ");
+//  UART.println(buffer);
+//  UART.print("received length: ");
+//  UART.println(buffer.length());
 //#endif
 //  flagUartReceived = true;
   return buffer;
@@ -75,6 +75,7 @@ String readUart() {
 
 void msCANSetup(void)
 {
+  activeBus = MS_BUS;
   CAN_STATUS Stat ;
   afio_init(); // this will restart subsystem and make pins A11A12 work
   // Initialize CAN module
@@ -98,8 +99,9 @@ void msCANSetup(void)
 
 void lsCANSetup(void)
 {
-  afio_init(); // this will restart subsystem and make pins A11A12 work
+  activeBus = LS_BUS;
   CAN_STATUS Stat ;
+  afio_init(); // this will restart subsystem and make pins A11A12 work
   // Initialize CAN module
   canBus.map(CAN_GPIO_PINS_LS);
   Stat = canBus.begin(CAN_SPEED_33, CAN_MODE_NORMAL);
@@ -116,6 +118,7 @@ void lsCANSetup(void)
    canBus.filter(6, 0x350 << 21, 0xFFFFFFFF) ; // backwards drive direction
    canBus.filter(7, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(8, 0x500 << 21, 0xFFFFFFFF) ; // voltage
+   canBus.filter(9, 0x170 << 21, 0xFFFFFFFF) ; // KEY
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
@@ -127,32 +130,44 @@ void lsCANSetup(void)
   }
 }
 
+
+void canRestart(void){
+  switch (activeBus) {
+    case LS_BUS:
+      lsCANSetup();
+      break;
+    case MS_BUS:
+      msCANSetup();
+      break;
+  }
+}
+
 /**
-   Print out received message to SERIAL out
+   Print out received message to UART out
 */
 // void printMsg(CanMsg *r_msg) {
 void printMsg(void) {
 #ifdef DEBUG
   digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
-  SERIAL.print(millis());
-  SERIAL.print("\t");
-  SERIAL.print(r_msg->ID, HEX);
-  SERIAL.print(" # ");
-  SERIAL.print(r_msg->Data[0], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[1], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[2], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[3], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[4], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[5], HEX);
-  SERIAL.print(" ");
-  SERIAL.print(r_msg->Data[6], HEX);
-  SERIAL.print(" ");
-  SERIAL.println(r_msg->Data[7], HEX);
+  UART.print(millis());
+  UART.print("\t");
+  UART.print(r_msg->ID, HEX);
+  UART.print(" # ");
+  UART.print(r_msg->Data[0], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[1], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[2], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[3], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[4], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[5], HEX);
+  UART.print(" ");
+  UART.print(r_msg->Data[6], HEX);
+  UART.print(" ");
+  UART.println(r_msg->Data[7], HEX);
   digitalWrite(PC13, PC13OFF);
 #endif
 }
@@ -186,8 +201,9 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
     canBus.cancel(CAN_TX_MBX1);
     canBus.cancel(CAN_TX_MBX2);
     #ifdef DEBUG
-    SERIAL.print("CAN-Bus send error");
+    UART.print("CAN send error");
     #endif
+    canRestart();
   }
   // Send this frame
 }
@@ -434,8 +450,9 @@ void lsBackTurnLights1000(){
 
 void lsDoStrob(){
   debug("lsDoStrob. To turn off press knob down");
-  for (int i=0; i<2; i++){
-  lsShowEcn(0xd8, 0xbd, 0x8b);  
+//  for (int i=0; i<1; i++){
+  delay(300);
+  lsShowEcn(0x10, 0x11, 0x11);
   lsBeep(0x08, 0x02, 0x20);
   // зажечь
   SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x02, 0x00, 0x00, 0x00);
@@ -453,6 +470,7 @@ void lsDoStrob(){
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00);
   delay(300);
 
+  lsShowEcn(0x11, 0x11, 0x01);
   // зажечь
   SendCANmessage(0x250, 8, 0x06, 0xAE, 0x02, 0x03, 0x01, 0x00, 0x00, 0x00);
   delay(100);
@@ -467,8 +485,7 @@ void lsDoStrob(){
   delay(100);
   // индикатор дальнего
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x04, 0x00, 0x00, 0x00);
-  delay(300);
-  }
+//  }
 
 }
 
@@ -479,19 +496,49 @@ void lsTopStopSignalSet(bool turnOn) {
   if (turnOn) {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
   flagTopStopSignal = true;
+#ifdef DEBUG
+debug("STOP ON");
+#endif
+
   } else {
-//  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
-//  flagTopStopSignal = false;
+  SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
+  flagTopStopSignal = false;
+#ifdef DEBUG
+debug("STOP OFF");
+#endif
+  }
+}
+
+/**
+ * Изменить состояние допстоп
+ */
+void lsTopStopSignalSwitch() {
+lsTopStopSignalSet(!flagTopStopSignal);
+#ifdef DEBUG
+debug("SWITCHING STOP");
+delay(300);
+#endif
+}
+
+/**
+ * Мигнуть допстопом times раз с интервалом del
+ */
+void lsTopStopSignalBlink(byte times, int del) {
+  for (byte i=0;i<times;i++){
+    lsTopStopSignalSet(true);
+    delay(del);
+    lsTopStopSignalSet(false);
+    delay(del);
   }
 }
 
 /**
  * Погасить допстоп
- */
 void lsTopStopSignalUnset() {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
   flagTopStopSignal = false;
 }
+ */
 
 /**
  *  Закрыть окна
