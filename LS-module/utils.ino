@@ -119,6 +119,7 @@ void lsCANSetup(void)
    canBus.filter(7, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(8, 0x500 << 21, 0xFFFFFFFF) ; // voltage
    canBus.filter(9, 0x170 << 21, 0xFFFFFFFF) ; // KEY
+   canBus.filter(10, 0x305 << 21, 0xFFFFFFFF) ; // IPC from central buttons
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
@@ -569,6 +570,19 @@ void lsOpenWindows() {
 lsOpenWindows(false);
 }
 
+/**
+  must send periodically
+*/
+void lsSportOn(void){
+  SendCANmessage(0x305, 7, 0x00, 0x00, 0x00, 0x00, 0x3A, 0x81, 0x00, 0x00); //  0	 0	 0	 0	 3A	 81	 0
+}
+
+/**
+  must send periodically
+*/
+void lsEspOff(void){
+  SendCANmessage(0x305, 7, 0x00, 0x00, 0x00, 0x00, 0x3B, 0x81, 0x00, 0x00); //  0	 0	 0	 0	 3A	 81	 0
+}
 
 // == на будущее
 // 251#04.AE.03.04.04.00.00.00 открытие багажника

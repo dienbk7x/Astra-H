@@ -4,8 +4,8 @@
 #include <HardwareCAN.h>
 #include "includes/ls_defines.h"
 
-String VERSION = "1.19";
-String DATE = "2019-10-11";
+String VERSION = "1.20";
+String DATE = "2019-10-16";
 
 //#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -110,6 +110,10 @@ volatile bool flagBackwards = false;  // флаг заднего хода
 volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
 volatile bool flagUartReceived = false;  // флаг заготовка
 volatile bool flagTopStopSignal = false;  // Горит верхний стоп
+volatile bool flagSportOn = true;  // флаг спорт режима
+long sportMillis = 0; // size?
+short sportWaitTime = 800; // pause between sport mode message
+volatile bool flagEspOff = false;  // флаг есп офф
 volatile bool flag = false;  // флаг заготовка
 
 // Instanciation of CAN interface
@@ -504,6 +508,12 @@ printMsg();
 */
     
 //######################################################################################################
+    } else if (r_msg->ID == 0x305) { // Buttons on central console
+      #ifdef DEBUG
+      printMsg();
+      #endif
+
+//######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
       if ((r_msg->Data[0]) & 0x10) {
         flagBackwards = true;
@@ -614,6 +624,19 @@ printMsg();
     lsDoStrob();
   }
 //######################################################################################################
+  else if ((ECN_SPEED_PLUS == ecnMode) && (millis() > sportMillis)) {
+    sportMillis = millis() + sportWaitTime;
+    if (flagSportOn) {
+        debug("SEND SPORT ON");
+        lsSportOn();
+    }
+    if (flagEspOff) {
+        debug("SEND ESP OFF");
+        lsEspOff();
+    }
+
+  }
+//######################################################################################################
 //######################################################################################################
 
   // ======== Receive a message from UART =======================================================================
@@ -645,6 +668,8 @@ printMsg();
         log("lsOpenWindows");
         log("lsOpenWindows2");
         log("lsOpenRearDoor");
+        log("SportOn");
+        log("EspOff");
         delay(3500);
       } else if (messageUart=="lsDoStrob") {
         lsDoStrob();
@@ -678,8 +703,10 @@ printMsg();
         lsOpenWindows(true);
       } else if (messageUart=="lsOpenRearDoor") {
         lsOpenRearDoor();
-      } else if (messageUart=="") {
-      } else if (messageUart=="") {
+      } else if (messageUart=="SportOn") {
+        flagSportOn = !flagSportOn;
+      } else if (messageUart=="EspOff") {
+        flagEspOff = !flagEspOff ;
       }
       messageUart = "";
 //      flagUartReceived = false;
