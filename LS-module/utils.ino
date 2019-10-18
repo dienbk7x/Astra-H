@@ -209,6 +209,62 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
   // Send this frame
 }
 
+void uartToCAN(String messageUart);
+/*
+/* strtok example *//*
+#include <stdio.h>
+#include <string.h>
+
+int main ()
+{
+  char str[] ="- This, a sample string.";
+  char * pch;
+  printf ("Splitting string \"%s\" into tokens:\n",str);
+  pch = strtok (str," ,.-");
+  while (pch != NULL)
+  {
+    printf ("%s\n",pch);
+    pch = strtok (NULL, " ,.-");
+  }
+  return 0;
+}
+
+String myString;
+char c;
+int Index1,Index2,Index3, azi;
+String secondValue, thirdValue;
+
+ if (myString.length()>0)
+{
+Index1 = myString.indexOf(':');
+Index2 = myString.indexOf(':', Index1+1);
+Index3 = myString.indexOf(':', Index2+1);
+
+secondValue = myString.substring(Index1+1, Index2);
+thirdValue = myString.substring(Index2+1, Index3);
+
+
+Serial.println(secondValue);
+Serial.println(thirdValue);
+
+myString="";
+}
+delay(1000);
+}
+
+char nibble2c(char c)
+{
+   if ((c>='0') && (c<='9'))
+      return c-'0' ;
+   if ((c>='A') && (c<='F'))
+      return c+10-'A' ;
+   if ((c>='a') && (c<='a'))
+      return c+10-'a' ;
+   return -1 ;
+}
+
+*/
+
 void wakeUpBus() {
   log("send wake up");
   SendCANmessage(0x100, 0); // wake up bus?

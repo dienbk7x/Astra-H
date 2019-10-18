@@ -519,14 +519,6 @@ printMsg();
       #ifdef DEBUG
       printMsg();
       #endif
-
-//######################################################################################################
-    }
-      }
-      #ifdef DEBUG
-      printMsg();
-      #endif
-
 //######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
       if ((r_msg->Data[0]) & 0x10) {
@@ -684,6 +676,7 @@ printMsg();
         log("lsOpenRearDoor");
         log("SportOn");
         log("EspOff");
+//        log("send:id:d0:d1:d2:d3:d4:d5:d6:d7");
         delay(3500);
       } else if (messageUart=="lsDoStrob") {
         lsDoStrob();
