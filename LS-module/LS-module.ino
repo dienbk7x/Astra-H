@@ -3,6 +3,7 @@
 */
 #include <HardwareCAN.h>
 #include "includes/ls_defines.h"
+#include "includes/ls_module.h"
 
 String VERSION = "1.20";
 String DATE = "2019-10-16";
@@ -41,8 +42,8 @@ String line10 = "====================";
 /////// ============= Глобальные переменные | Global variables ============= ///////
 /* global variables */
 enum EcnMode {
-  OFF=0, 
-  ECN_TEMP_VOLT,      // температура и напряжение 
+  OFF=0,
+  ECN_TEMP_VOLT,      // температура и напряжение
   ECN_SPEED,          // точная скорость
   ECN_SPEED_PLUS,          // точная скорость + анализ // todo временно
   ECN_DOORS,          // мониторинг дверей
@@ -115,6 +116,9 @@ long sportMillis = 0; // size?
 short sportWaitTime = 800; // pause between sport mode message
 volatile bool flagEspOff = false;  // флаг есп офф
 volatile bool flag = false;  // флаг заготовка
+
+// Saved data of different IDs
+uint8 lsId305Data[7] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 // Instanciation of CAN interface
 HardwareCAN canBus(CAN1_BASE);
@@ -509,6 +513,16 @@ printMsg();
     
 //######################################################################################################
     } else if (r_msg->ID == 0x305) { // Buttons on central console
+      for(byte i = 0; i<8; i++) {
+          lsId305Data[i] = r_msg->Data[i];
+      }
+      #ifdef DEBUG
+      printMsg();
+      #endif
+
+//######################################################################################################
+    }
+      }
       #ifdef DEBUG
       printMsg();
       #endif

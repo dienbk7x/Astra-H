@@ -572,16 +572,35 @@ lsOpenWindows(false);
 
 /**
   must send periodically
+  test lsId305Data[i]  may cause fantom button pressing
 */
 void lsSportOn(void){
-  SendCANmessage(0x305, 7, 0x00, 0x00, 0x00, 0x00, 0x3A, 0x81, 0x00, 0x00); //  0	 0	 0	 0	 3A	 81	 0
+  SendCANmessage(0x305, 7,
+    lsId305Data[0],
+    lsId305Data[1],
+    lsId305Data[2],
+    lsId305Data[3],
+    lsId305Data[4] | 0x3A,
+    lsId305Data[5] | 0x81,
+    lsId305Data[6],
+    0x00
+  ); //  0	 0	 0	 0	 3A	 81	 0
 }
 
 /**
   must send periodically
 */
 void lsEspOff(void){
-  SendCANmessage(0x305, 7, 0x00, 0x00, 0x00, 0x00, 0x3B, 0x81, 0x00, 0x00); //  0	 0	 0	 0	 3A	 81	 0
+  SendCANmessage(0x305, 7,
+    lsId305Data[0],
+    lsId305Data[1],
+    lsId305Data[2],
+    lsId305Data[3] | 0x08,
+    lsId305Data[4] | 0x3B,
+    lsId305Data[5] | 0x81,
+    lsId305Data[6],
+    0x00
+  ); //  0	 0	 0	 0x08 3B 81 0
 }
 
 // == на будущее
