@@ -119,6 +119,7 @@ void lsCANSetup(void)
    canBus.filter(7, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(8, 0x500 << 21, 0xFFFFFFFF) ; // voltage
    canBus.filter(9, 0x170 << 21, 0xFFFFFFFF) ; // KEY
+   canBus.filter(10, 0x305 << 21, 0xFFFFFFFF) ; // IPC from central buttons
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
@@ -496,16 +497,16 @@ void lsTopStopSignalSet(bool turnOn) {
   if (turnOn) {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x04, 0x04, 0x00); // 3-rd stop
   flagTopStopSignal = true;
-#ifdef DEBUG
-debug("STOP ON");
-#endif
+//#ifdef DEBUG
+//debug("STOP ON");
+//#endif
 
   } else {
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00); // 3-rd stop OFF
   flagTopStopSignal = false;
-#ifdef DEBUG
-debug("STOP OFF");
-#endif
+//#ifdef DEBUG
+//debug("STOP OFF");
+//#endif
   }
 }
 
@@ -514,10 +515,10 @@ debug("STOP OFF");
  */
 void lsTopStopSignalSwitch() {
 lsTopStopSignalSet(!flagTopStopSignal);
-#ifdef DEBUG
-debug("SWITCHING STOP");
-delay(300);
-#endif
+//#ifdef DEBUG
+//debug("SWITCHING STOP");
+//delay(300);
+//#endif
 }
 
 /**
@@ -542,14 +543,15 @@ void lsTopStopSignalUnset() {
 
 /**
  *  Закрыть окна
+ *  Использует глобальные переменные keyNum, keyCode0, keyCode1
  */
 void lsCloseWindows() {
   lsTopStopSignalSet(true); // включаю верхний стоп
-  SendCANmessage(0x160, 4, 0x02, 0x80, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
+  SendCANmessage(0x160, 4, keyNum, 0x80, keyCode0, keyCode1, 0, 0, 0, 0); // hold close on remote
   delay(500);
-  SendCANmessage(0x160, 4, 0x02, 0xC0, 0x04, 0xFA, 0, 0, 0, 0); // hold close on remote
+  SendCANmessage(0x160, 4, keyNum, 0xC0, keyCode0, keyCode1, 0, 0, 0, 0); // hold close on remote
   delay(4000);
-  SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
+  SendCANmessage(0x160, 4, keyNum, 0x00, keyCode0, keyCode1, 0, 0, 0, 0); //release on remote
   lsTopStopSignalSet(false); // выключаю верхний стоп
 }
 /**
@@ -559,15 +561,28 @@ void lsOpenWindows(bool half) {
   int holdDelay = half?2000:4000;
   lsTopStopSignalSet(true); // включаю верхний стоп
   delay(500);
-  SendCANmessage(0x160, 4, 0x02, 0x30, 0x04, 0xFA, 0, 0, 0, 0); // hold open on remote
+  SendCANmessage(0x160, 4, keyNum, 0x30, keyCode0, keyCode1, 0, 0, 0, 0); // hold open on remote
   delay(holdDelay);
-  SendCANmessage(0x160, 4, 0x02, 0x00, 0x04, 0xFA, 0, 0, 0, 0); //release on remote
+  SendCANmessage(0x160, 4, keyNum, 0x00, keyCode0, keyCode1, 0, 0, 0, 0); //release on remote
   lsTopStopSignalSet(false); // выключаю верхний стоп
 }
 void lsOpenWindows() {
 lsOpenWindows(false);
 }
 
+/**
+  must send periodically
+*/
+void lsSportOn(void){
+  SendCANmessage(0x305, 7, 0x00, 0x00, 0x00, 0x00, 0x3A, 0x81, 0x00, 0x00); //  0	 0	 0	 0	 3A	 81	 0
+}
+
+/**
+  must send periodically
+*/
+void lsEspOff(void){
+  SendCANmessage(0x305, 7, 0x00, 0x00, 0x00, 0x00, 0x3B, 0x81, 0x00, 0x00); //  0	 0	 0	 0	 3A	 81	 0
+}
 
 // == на будущее
 // 251#04.AE.03.04.04.00.00.00 открытие багажника

@@ -4,8 +4,8 @@
 #include <HardwareCAN.h>
 #include "includes/ls_defines.h"
 
-String VERSION = "1.19";
-String DATE = "2019-10-11";
+String VERSION = "1.20";
+String DATE = "2019-10-16";
 
 //#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -64,6 +64,10 @@ enum ActiveBus {
 };
 
 uint8 keyState = 0x00;
+char keyNum = 0;
+byte keyCode0 = 0x00;
+byte keyCode1 = 0x00;
+
 long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
 long btnMillis = 0; // size?
@@ -106,6 +110,10 @@ volatile bool flagBackwards = false;  // флаг заднего хода
 volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
 volatile bool flagUartReceived = false;  // флаг заготовка
 volatile bool flagTopStopSignal = false;  // Горит верхний стоп
+volatile bool flagSportOn = true;  // флаг спорт режима
+long sportMillis = 0; // size?
+short sportWaitTime = 800; // pause between sport mode message
+volatile bool flagEspOff = false;  // флаг есп офф
 volatile bool flag = false;  // флаг заготовка
 
 // Instanciation of CAN interface
@@ -168,56 +176,48 @@ void loop()
       // debug("0x100");
     }// do nothing
 //######################################################################################################
-    // else if (r_msg->ID == LS_ID_KEY) { // key position
-    else if (r_msg->ID == 0x170) { // key position
+     else if (r_msg->ID == LS_ID_KEY)
+     { // key position
+//    else if (r_msg->ID == 0x170) { // key position
+         if (keyState != r_msg->Data[LS_KEY_DATA_BYTE])
+         {
+           keyState = r_msg->Data[LS_KEY_DATA_BYTE];
 
-      keyState = r_msg->Data[LS_KEY_DATA_BYTE];
+           switch (keyState) {
+    //      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
+            case 0:
+              UART.print("keyState not set!!");
+              break;
 
-      #ifdef DEBUG
-      printMsg();
-      UART.print("keyState ");
-      UART.print(keyState);
-      UART.print("; keyState & KEY_IGN ");
-      UART.print(keyState & KEY_IGN);
-      UART.print("; keyState & KEY_IGN == 0x04 ");
-      UART.println((keyState & KEY_IGN) == 0x04);
-      #endif
+            case KEY_LOCKED:
+              ecnMode = OFF;
+              break;
 
-      // switch (keyState) {
-      switch (r_msg->Data[LS_KEY_DATA_BYTE]) {
-// todo add previous state to see change
-        case 0:
-          UART.print("keyState not set!!");
-          break;
+            case KEY_IGN_OFF:
+              break;
 
-        case KEY_LOCKED:
-//          ecnMode = OFF;
-          break;
+            case KEY_IGN_ON:
+              ecnMode = ECN_TEMP_VOLT;
+              break;
 
-        case KEY_IGN_OFF:
-          break;
+            case KEY_STARTER_ON:
+               #ifdef DEBUG
+               debug("KEY_STARTER_ON");
+               #endif
+              delay(1800); // delay to pass voltage drop at starter run
+              lsBeep(1);
+              break;
 
-        case KEY_IGN_ON:
-//          ecnMode = ECN_TEMP_VOLT;
-          break;
+            case KEY_STARTER_OFF:
+              break;
 
-        case KEY_STARTER_ON:
-           #ifdef DEBUG
-           debug("KEY_STARTER_ON");
-           #endif
-          delay(1800); // delay to pass voltage drop at starter run
-          lsBeep(1);
-          break;
-
-        case KEY_STARTER_OFF:
-          break;
-
-        default:
-          break;
+            default:
+              break;
+          }
       }
     }
 //######################################################################################################
-    else if ((r_msg->ID == 0x108) /*&& (keyState & KEY_IGN)*/ ) { // speed + taho
+    else if ((r_msg->ID == 0x108) /*&& ((keyState & KEY_IGN) == KEY_IGN)*/ ) { // speed + taho
       taho = (r_msg->Data[1]<<6) + (r_msg->Data[2]>>2);
       // 90 === 900rpm
       speedPrev = speed;
@@ -399,6 +399,10 @@ if (ECN_SPEED_PLUS == ecnMode) {
 #ifdef DEBUG
 printMsg();
 #endif
+      keyNum = r_msg->Data[0];
+      keyCode0 = r_msg->Data[2];
+      keyCode1 = r_msg->Data[3];
+
       if (r_msg->Data[1]==0x80) { // press close 2-nd time
         lsCloseWindows();
 
@@ -481,7 +485,6 @@ printMsg();
         if (r_msg->Data[1] & 0x10) {d2 += 0xb0;}  // 1000b0
         lsShowEcn(d0, d1, d2);
       } else { // другой режим -- тогда <при открытых> переключаем на авто
-//        todo  сделать возможность переключения режима (flagDoorsAcknowledge ?)
           if (flagDoorsAcknowledge == false) {
             savedEcnMode = ecnMode;
             ecnMode = ECN_DOORS_AUTO;
@@ -504,6 +507,12 @@ printMsg();
 задние пассажирские в data[1]
 */
     
+//######################################################################################################
+    } else if (r_msg->ID == 0x305) { // Buttons on central console
+      #ifdef DEBUG
+      printMsg();
+      #endif
+
 //######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
       if ((r_msg->Data[0]) & 0x10) {
@@ -615,6 +624,19 @@ printMsg();
     lsDoStrob();
   }
 //######################################################################################################
+  else if ((ECN_SPEED_PLUS == ecnMode) && (millis() > sportMillis)) {
+    sportMillis = millis() + sportWaitTime;
+    if (flagSportOn) {
+        debug("SEND SPORT ON");
+        lsSportOn();
+    }
+    if (flagEspOff) {
+        debug("SEND ESP OFF");
+        lsEspOff();
+    }
+
+  }
+//######################################################################################################
 //######################################################################################################
 
   // ======== Receive a message from UART =======================================================================
@@ -646,6 +668,8 @@ printMsg();
         log("lsOpenWindows");
         log("lsOpenWindows2");
         log("lsOpenRearDoor");
+        log("SportOn");
+        log("EspOff");
         delay(3500);
       } else if (messageUart=="lsDoStrob") {
         lsDoStrob();
@@ -679,8 +703,10 @@ printMsg();
         lsOpenWindows(true);
       } else if (messageUart=="lsOpenRearDoor") {
         lsOpenRearDoor();
-      } else if (messageUart=="") {
-      } else if (messageUart=="") {
+      } else if (messageUart=="SportOn") {
+        flagSportOn = !flagSportOn;
+      } else if (messageUart=="EspOff") {
+        flagEspOff = !flagEspOff ;
       }
       messageUart = "";
 //      flagUartReceived = false;
