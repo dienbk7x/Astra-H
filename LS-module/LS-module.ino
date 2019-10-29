@@ -661,7 +661,7 @@ printMsg();
         lsSendEspOff();
         lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
     }
-  } else if (OFF = ecnMode) {
+  } else if (OFF == ecnMode) {
     flagEspOff=flagEspOff?false;
   }
 //######################################################################################################
