@@ -630,7 +630,7 @@ lsOpenWindows(false);
   must send periodically
   test lsId305Data[i]  may cause fantom button pressing
 */
-void lsSportOn(void){
+void lsSendSportOn(void){
   SendCANmessage(0x305, 7,
     lsId305Data[0],
     lsId305Data[1],
@@ -646,7 +646,7 @@ void lsSportOn(void){
 /**
   must send periodically
 */
-void lsEspOff(void){
+void lsSendEspOff(void){
   SendCANmessage(0x305, 7,
     lsId305Data[0],
     lsId305Data[1],

@@ -5,8 +5,8 @@
 #include "includes/ls_defines.h"
 #include "includes/ls_module.h"
 
-String VERSION = "1.20";
-String DATE = "2019-10-16";
+String VERSION = "1.21";
+String DATE = "2019-10-29";
 
 //#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -45,7 +45,8 @@ enum EcnMode {
   OFF=0,
   ECN_TEMP_VOLT,      // температура и напряжение
   ECN_SPEED,          // точная скорость
-  ECN_SPEED_PLUS,          // точная скорость + анализ // todo временно
+  ECN_SPORT,          // точная скорость + спорт
+  ECN_ESP_OFF,        // спорт -ESP
   ECN_DOORS,          // мониторинг дверей
   ECN_RETURN,         // крайний режим для возврата в ноль
   ECN_DOORS_AUTO,     // открытые двери (с возвратом в предыдущий режим)
@@ -251,7 +252,7 @@ void loop()
           } else
 
       //-------------- process decelerations by 400 ms--------------//
-          if (dtSpeed400 < 1000) { // если более 800, то начинаем сначала без обработки
+                 if (dtSpeed400 < 1000) { // если более, то начинаем сначала без обработки
             dV400 = speed - speed400Prev; // измеряем разницу с текущим
 
 
@@ -259,7 +260,7 @@ void loop()
             if ((dV400 < 0) && (flagThrottle == false)) { // если торможение двигателем
               msg = "DECEL";
               lsTopStopSignalSet(true); // включаю верхний стоп
-            } else if ((dV400 < -1) && (ECN_SPEED_PLUS == ecnMode)) { // если торможение двигателем
+            } else if ((dV400 < -1) && (ECN_SPORT == ecnMode)) { // если торможение двигателем
               lsBeep(0x1e, 0x02, 0x04);
               msg = "DECEL2";
               lsTopStopSignalSet(true); // включаю верхний стоп
@@ -270,7 +271,9 @@ void loop()
             }
 
             // check high deceleration
+        #ifdef DEBUG
             accelG = dV400  /3.6  * 1000 / dtSpeed400 / 9.8; // it is of float type
+        #endif
             //  for more accuracy may need to monitor dTAHO/dt but only when transmission is jointed
 
             if ( dV400 < -8 ) {
@@ -284,7 +287,7 @@ void loop()
             //
               #ifdef DEBUG
 //              debug("back turn lights on");
-if (ECN_SPEED_PLUS == ecnMode) {
+if (ECN_SPORT == ecnMode) {
               lsBeep(0x04);
 } /////// end if ECN_MODE_PLUS
               msg = "EMRBR";
@@ -299,9 +302,14 @@ if (ECN_SPEED_PLUS == ecnMode) {
         }
       //--
       //-------------- END process decelerations by 400 ms--------------//
-      if ((ECN_SPEED == ecnMode) || (ECN_SPEED_PLUS == ecnMode)) {
+      if ((ECN_SPEED == ecnMode) || (ECN_SPORT == ecnMode) || (ECN_ESP_OFF == ecnMode)) {
         // ------ gear ------------
-        if (speed > 3) { // пока не завязался на сцепление, отсекаем околонулевую скорость
+
+        uint8 gears = 0;
+        uint8 brakes = 0;
+
+        if ((speed > 3) && (ECN_ESP_OFF != ecnMode)) { // пока не завязался на сцепление, отсекаем околонулевую скорость
+        // byte calculateGear(uint8 speed, int taho) {
           gearFactor = (speed * 10) / (taho/100); // 80*10 / 3000/100
           if (gearFactor < 10) { // определяем передачу
             gear = 1;
@@ -314,7 +322,10 @@ if (ECN_SPEED_PLUS == ecnMode) {
           } else if (gearFactor < 35) {
             gear = 5;
           }
+         // return gear
+         // }
 
+        // byte recommendGear(byte gear, int taho) {
           recommendedGear = gear;
           if (taho > 3100) {
             recommendedGear = gear + 1;
@@ -323,14 +334,23 @@ if (ECN_SPEED_PLUS == ecnMode) {
               recommendedGear = gear - 1;
             }
           }
-        }
-        uint8 gears = 10*recommendedGear + gear;
+          gears = 10*recommendedGear + gear;
+         // return gear
+         // }
         // ------ END gear ------------
-        uint8 brakes = 0;
-        if (flagTopStopSignal) {brakes+=100;}
-        if (flagFastBraking) {brakes+=200;}
-        gears += brakes;
-        lsShowEcnDecimal(gears, speed);
+        }
+
+        if (ECN_ESP_OFF == ecnMode){
+            flagEspOff = true;
+//            lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
+            msg = "ESPOF";
+
+        } else {
+            if (flagTopStopSignal) {brakes+=100;}
+            if (flagFastBraking) {brakes+=200;}
+//            gears += brakes;
+            lsShowEcnDecimal(brakes+gears, speed);
+        }
 
         #ifdef DEBUG
         // todo add logTimeout, log
@@ -630,17 +650,19 @@ printMsg();
     lsDoStrob();
   }
 //######################################################################################################
-  else if ((ECN_SPEED_PLUS == ecnMode) && (millis() > sportMillis)) {
+  else if (((ECN_SPORT == ecnMode) || (ECN_ESP_OFF == ecnMode) ) && (millis() > sportMillis)) {
     sportMillis = millis() + sportWaitTime;
     if (flagSportOn) {
         debug("SEND SPORT ON");
-        lsSportOn();
+        lsSendSportOn();
     }
     if (flagEspOff) {
         debug("SEND ESP OFF");
-        lsEspOff();
+        lsSendEspOff();
+        lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
     }
-
+  } else if (OFF == ecnMode) {
+    flagEspOff = false;
   }
 //######################################################################################################
 //######################################################################################################
