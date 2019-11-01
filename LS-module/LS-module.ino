@@ -115,6 +115,8 @@ volatile bool flagTopStopSignal = false;  // Горит верхний стоп
 volatile bool flagSportOn = true;  // флаг спорт режима
 long sportMillis = 0; // size?
 short sportWaitTime = 800; // pause between sport mode message
+long espOffMillis = 0; // size?
+short espOffWaitTime = 300; // pause between sport mode message
 volatile bool flagEspOff = false;  // флаг есп офф
 volatile bool flag = false;  // флаг заготовка
 
@@ -650,19 +652,18 @@ printMsg();
     lsDoStrob();
   }
 //######################################################################################################
-  else if (((ECN_SPORT == ecnMode) || (ECN_ESP_OFF == ecnMode) ) && (millis() > sportMillis)) {
+  else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
     sportMillis = millis() + sportWaitTime;
-    if (flagSportOn) {
-        debug("SEND SPORT ON");
+//    if (flagSportOn) {
         lsSendSportOn();
-    }
-    if (flagEspOff) {
+//    }
+  }
+//######################################################################################################
+  else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
+    espOffMillis = millis() + espOffWaitTime;
         debug("SEND ESP OFF");
         lsSendEspOff();
         lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
-    }
-  } else if (OFF == ecnMode) {
-    flagEspOff = false;
   }
 //######################################################################################################
 //######################################################################################################
