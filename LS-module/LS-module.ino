@@ -61,10 +61,11 @@ byte savedEcnMode = OFF;
 
 //byte activeBus = 0;
 enum ActiveBus {
+  NO_BUS = 0,
   LS_BUS = 1,
   MS_BUS = 2
 };
-ActiveBus activeBus = 0; // try "enum" as class
+ActiveBus activeBus = NO_BUS; // try "enum" as class
 
 /* Remote key  */
 uint8 keyState = 0x00;
