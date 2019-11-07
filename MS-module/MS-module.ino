@@ -34,6 +34,7 @@ bool test_mode = 0;
 bool alarm = 0;
 bool Blink = 0;
 bool REVERSE = 0; //задний ход вкл/выкл /// todo автор зря переменную ввёл большими буквами. не java-style
+volatile bool flag_blocked; // to block AC Trigger function (advised to turn off CD30MP3)
 int VOLTAGE = 131;
 int p_VOLTAGE = 0;
 int T_ENG = 1000;

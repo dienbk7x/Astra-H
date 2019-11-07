@@ -5,8 +5,22 @@
 void CAN_message_process(CanMsg *can_msg) {
   switch (can_msg->ID)  {
 
-#ifdef HW_MEDIA_CONTROL
     case MS_WHEEL_BUTTONS_ID: {
+        // setting the flag_blocked flag [01 нажата кнопка] [81 пресет/верхняя на руле] []
+        if (r_msg->Data[1] == MS_BTN_STATION) {
+            if (r_msg->Data[0] == BTN_PRESSED) {
+              flag_blocked = true;
+              digitalWrite(PC13, PC13ON);
+              log("Blocking button is pressed");
+            }
+            else {
+              flag_blocked = false;
+              digitalWrite(PC13, PC13OFF);
+              UART.println("Blocking button is released");
+            }
+        }
+
+#ifdef HW_MEDIA_CONTROL
         switch (can_msg->Data[1]) {
           case MS_BTN_VOL: {
               if (can_msg->Data[0] == WHEEL_PRESSED) {
@@ -81,9 +95,9 @@ void CAN_message_process(CanMsg *can_msg) {
               break;
             }
         }
+#endif
         break;
       }
-#endif
 
     case MS_ECC_ID: {
         if (can_msg->Data[0] == MS_BATTERY) {
@@ -241,6 +255,25 @@ void CAN_message_process(CanMsg *can_msg) {
         if ((can_msg->Data[2] ==  MS_IGNITION_KEY_PRESENT) || (can_msg->Data[2] == MS_IGNITION_START)) {
           key_acc = 1;
         }
+        break;
+      }
+    case MS_CLIMATE_CONTROLS_ID: {
+      // check block button pressed
+      if (flag_blocked) { // if block pressed, just skip it
+      }
+      else { // check if the climate control menu is pressed
+        if (
+          (r_msg->Data[0] == 0x01) and
+          (r_msg->Data[1] == 0x17) and
+          (r_msg->Data[2] == 0x00)      )
+            { // AC triggering script
+    //          log("blocking is NOT pressed");
+    //          log("Running AC triggering script");
+              AC_trigger();
+    //          log("Done.");
+    //          digitalWrite(PC13, PC13OFF);
+            } //end AC triggering script
+      } // end if
         break;
       }
     case MS_WINDOW_ID: { // todo у меня нет??
