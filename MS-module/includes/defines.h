@@ -41,7 +41,7 @@
     #define BIG_ENCODER_PRESS 0x17
         #define BIG_ENCODER_PRESSED 0x01
         #define BIG_ENCODER_RELEASED 0x00
-{/*          (can_msg->Data[0] == 0x01) and
+/*          (can_msg->Data[0] == 0x01) and
             (can_msg->Data[1] == 0x17) and
             (can_msg->Data[2] == 0x00) //?
 
@@ -57,7 +57,7 @@
 
               // turn left 1 click
               log("turn left 1 click");
-              SendCANmessage(0x208, 6, 0x08, 0x16, 0xff);   */}
+              SendCANmessage(0x208, 6, 0x08, 0x16, 0xff);   */
     #define BIG_ENCODER_TURN 0x16
         #define BIG_ENCODER_CLOCKWISE 0x01
         #define BIG_ENCODER_COUNTER_CLOCKWISE 0xff
