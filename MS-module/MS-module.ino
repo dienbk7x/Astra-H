@@ -3,6 +3,7 @@
  */
 
 #include "HardwareCAN/HardwareCAN.h"
+#include "includes/defines.h"
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                         MODULE OPTIONS                                              //
