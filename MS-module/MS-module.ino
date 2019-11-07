@@ -1,4 +1,9 @@
-#include "HardwareCAN.h"
+#include "HardwareCAN/HardwareCAN.h"
+
+// choose UART pins
+#define UART Serial1
+// Choose CAN pins
+#define CAN_GPIO_PINS_MS CAN_GPIO_PB8_PB9
 
 // Limit time to flag a CAN error
 #define CAN_TIMEOUT 100
@@ -78,8 +83,8 @@ String data_to_time(int);
 String Data_USART() {
   String Buffer_USART;
   char u;
-  while (Serial2.available() > 0 && u != '\n') { //read serial buffer until \n
-    char u = Serial2.read();
+  while (UART.available() > 0 && u != '\n') { //read serial buffer until \n
+    char u = UART.read();
     if (u != 0xD) Buffer_USART += u;  // skip \r
   }
   Buffer_USART.remove(Buffer_USART.length() - 1);
@@ -103,7 +108,7 @@ void btn_function(byte, byte);
 //                                  SETUP FUNCTIONS                                    //
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 void setup() {
-  Serial2.begin(115200); // USART2 on A2-A3 pins
+  UART.begin(115200); // USART on
   CANSetup() ;
   pinMode(PB12, OUTPUT_OPEN_DRAIN);
   pinMode(PB13, OUTPUT_OPEN_DRAIN);

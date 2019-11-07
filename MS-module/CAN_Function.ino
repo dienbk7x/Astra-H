@@ -8,7 +8,7 @@ void CANSetup(void)
 {
   CAN_STATUS Stat ;
   // Initialize CAN module
-  canBus.map(CAN_GPIO_PB8_PB9);
+  canBus.map(CAN_GPIO_PINS_MS);
   Stat = canBus.begin(CAN_SPEED_95, CAN_MODE_NORMAL);
   //canBus.filter(0, CAN_FIFO0, 0, 0); //без фильтра
   canBus.filter(0, CAN_FIFO0, MS_WINDOW_ID, 0xFFFFFFFF);
@@ -24,15 +24,24 @@ void CANSetup(void)
   canBus.set_irq_mode();
   nvic_irq_set_priority(NVIC_CAN_RX1, 0);
   nvic_irq_set_priority(NVIC_USB_LP_CAN_RX0, 0);
-  nvic_irq_set_priority(NVIC_USART2, 1);
+  nvic_irq_set_priority(NVIC_USART1, 1); // Choose right USART!
   Stat = canBus.status();
 #ifdef DEBUG
-  if (Stat != CAN_OK) Serial2.print("Initialization failed");
+  if (Stat != CAN_OK) UART.print("Initialization failed");
 #endif
 }
 
-void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 = 0x00, byte d2 = 0x00, byte d3 = 0x00, byte d4 = 0x00, byte d5 = 0x00, byte d6 = 0x00, byte d7 = 0x00)
-{ CanMsg msg ;
+void SendCANmessage(long id = 0x100,
+                    byte dlength = 8,
+                    byte d0 = 0x00,
+                    byte d1 = 0x00,
+                    byte d2 = 0x00,
+                    byte d3 = 0x00,
+                    byte d4 = 0x00,
+                    byte d5 = 0x00,
+                    byte d6 = 0x00,
+                    byte d7 = 0x00) {
+  CanMsg msg ;
   msg.IDE = CAN_ID_STD;
   msg.RTR = CAN_RTR_DATA;
   msg.ID = id ;
@@ -56,7 +65,7 @@ void SendCANmessage(long id = 0x100, byte dlength = 8, byte d0 = 0x00, byte d1 =
     canBus.cancel(CAN_TX_MBX1);
     canBus.cancel(CAN_TX_MBX2);
 #ifdef DEBUG
-    Serial2.print("CAN-Bus send error");
+    UART.print("CAN-Bus send error");
 #endif
   }
 }
