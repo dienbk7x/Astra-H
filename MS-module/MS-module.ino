@@ -1,4 +1,19 @@
+/**
+ * Based on https://github.com/alex161rus/Opel-Astra-H (which is based on https://github.com/Gegerd/Astra-H)
+ */
+
 #include "HardwareCAN/HardwareCAN.h"
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+//                         MODULE OPTIONS                                              //
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
+
+// DEBUG activates messages printout
+// Debug activation will increase the ant of memory by ~16k
+#define DEBUG
+
+// whether to translate media buttons to HW output
+//#define HW_MEDIA_CONTROL
 
 // choose UART pins
 #define UART Serial1
@@ -6,13 +21,8 @@
 #define CAN_GPIO_PINS_MS CAN_GPIO_PB8_PB9
 
 // Limit time to flag a CAN error
-#define CAN_TIMEOUT 100
-#define CAN_DELAY 0 // 10        // ms between two processings of incoming messages
-#define CAN_SEND_RATE 10 // 200   // ms between two successive sendings
 #define PC13ON 0
 #define PC13OFF 1
-#define DELAY 250
-//#define DEBUG  //Debug activation will increase the ant of memory by ~16k
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                         ASTRA H VARIABLES AND FUNCTIONS                             //
@@ -22,7 +32,7 @@ bool key_acc = 0;
 bool test_mode = 0;
 bool alarm = 0;
 bool Blink = 0;
-bool REVERSE = 0; //задний ход вкл/выкл
+bool REVERSE = 0; //задний ход вкл/выкл /// todo автор зря переменную ввёл большими буквами. не java-style
 int VOLTAGE = 131;
 int p_VOLTAGE = 0;
 int T_ENG = 1000;

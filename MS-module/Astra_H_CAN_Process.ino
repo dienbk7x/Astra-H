@@ -89,14 +89,14 @@ void CAN_message_process(CanMsg *can_msg) {
         if (can_msg->Data[0] == MS_BATTERY) {
           VOLTAGE = (can_msg->Data[2]);
           if (VOLTAGE != p_VOLTAGE) {
-            Serial2.println("<voltage:" + data_to_str(VOLTAGE, 1) + ">");
+            UART.println("<voltage:" + data_to_str(VOLTAGE, 1) + ">");
             p_VOLTAGE = VOLTAGE;
           }
         }
         if (can_msg->Data[0] == MS_ENGINE_TEMP) {
           T_ENG = (((can_msg->Data[3]) * 256) + (can_msg->Data[4]));
           if (T_ENG != p_T_ENG) {
-            Serial2.println("<t_eng:" + data_to_str(T_ENG, 0) + ">");
+            UART.println("<t_eng:" + data_to_str(T_ENG, 0) + ">");
             p_T_ENG = T_ENG;
           }
         }
@@ -127,7 +127,7 @@ void CAN_message_process(CanMsg *can_msg) {
         if (can_msg->Data[0] == 0x46) {
           RANGE = ((((can_msg->Data[2]) << 8) + (can_msg->Data[3])) / 2);
           if (RANGE != p_RANGE) {
-            Serial2.println("<range:" + String(RANGE) + ">");
+            UART.println("<range:" + String(RANGE) + ">");
             p_RANGE = RANGE;
           }
         }
@@ -153,7 +153,7 @@ void CAN_message_process(CanMsg *can_msg) {
           if (can_msg->Data[0] == 0x23 && can_msg->Data[1] == 0x26) {
             CSpeed = can_msg->Data [6];
             if (CSpeed != p_CSpeed) {
-              Serial2.println("<CSpeed:" + String(CSpeed) + ">");
+              UART.println("<CSpeed:" + String(CSpeed) + ">");
               p_CSpeed = CSpeed;
             }
           }
@@ -162,7 +162,7 @@ void CAN_message_process(CanMsg *can_msg) {
           if (can_msg->Data[0] == 0x24 && can_msg->Data[1] == 0x50) {
             CSpeed = can_msg->Data[3];
             if (CSpeed != p_CSpeed) {
-              Serial2.println("<CSpeed:" + String(CSpeed) + ">");
+              UART.println("<CSpeed:" + String(CSpeed) + ">");
               p_CSpeed = CSpeed;
             }
           }
@@ -171,7 +171,7 @@ void CAN_message_process(CanMsg *can_msg) {
           CTemp1 = can_msg->Data[2];
           CTemp2 = can_msg->Data[4];
           if ((CTemp1 != p_CTemp1) || (CTemp2 != p_CTemp2)) {
-            Serial2.println("<CTemp:" + String(CTemp1) + String(CTemp2) + ">");
+            UART.println("<CTemp:" + String(CTemp1) + String(CTemp2) + ">");
             p_CTemp1 = CTemp1;
             p_CTemp2 = CTemp2;
           }
@@ -179,7 +179,7 @@ void CAN_message_process(CanMsg *can_msg) {
         if (can_msg->Data[0] == 0x21 && can_msg->Data[1] == 0xE0 && can_msg->Data[3] == 0xA4) {
           CNapr = can_msg->Data[2] - 0x21;
           if (CNapr != p_CNapr) {
-            Serial2.println("<CNapr:" + String(CNapr) + ">");
+            UART.println("<CNapr:" + String(CNapr) + ">");
             p_CNapr = CNapr;
           }
         }
@@ -191,14 +191,14 @@ void CAN_message_process(CanMsg *can_msg) {
             CEco = 0x31;
           }
           if (CEco != p_CEco) {
-            Serial2.println("<CEco:" + String(CEco) + ">");
+            UART.println("<CEco:" + String(CEco) + ">");
             p_CEco = CEco;
           }
         }
         if (can_msg->Data[0] == 0x22 && can_msg->Data[1] == 0x50) {
           CSpeed = can_msg->Data[3];
           if (CSpeed != p_CSpeed) {
-            Serial2.println("<CSpeed:" + String(CSpeed) + ">");
+            UART.println("<CSpeed:" + String(CSpeed) + ">");
             p_CSpeed = CSpeed;
           }
         }
@@ -207,11 +207,11 @@ void CAN_message_process(CanMsg *can_msg) {
             CNapr = 0x38;
             CSpeed = 0x41;
             if (CNapr != p_CNapr) {
-              Serial2.println("<CNapr:" + String(CNapr) + ">");
+              UART.println("<CNapr:" + String(CNapr) + ">");
               p_CNapr = CNapr;
             }
             if (CSpeed != p_CSpeed) {
-              Serial2.println("<CSpeed:" + String(CSpeed) + ">");
+              UART.println("<CSpeed:" + String(CSpeed) + ">");
               p_CSpeed = CSpeed;
             }
           }
@@ -223,11 +223,11 @@ void CAN_message_process(CanMsg *can_msg) {
           COutT = (can_msg->Data[2] / 2) - 40;
           intCOutT = (can_msg->Data[2] / 2) - 40;
           if (intCOutT < 0) {
-            Serial2.println("<COutT:" + '-' + String(COutT) + ">");
+            UART.println("<COutT:" + '-' + String(COutT) + ">");
           }
           else
           {
-            Serial2.println("<COutT:" + String(COutT) + ">");
+            UART.println("<COutT:" + String(COutT) + ">");
           }
           p_COutT = COutT;
         }
@@ -264,6 +264,6 @@ void CAN_message_process(CanMsg *can_msg) {
   sprintf (scan, "\n % d: % 04X # %02X %02X %02X %02X %02X %02X %02X %02X ", millis(),
            can_msg->ID, can_msg->Data[0], can_msg->Data[1], can_msg->Data[2], can_msg->Data[3],
            can_msg->Data[4], can_msg->Data[5], can_msg->Data[6], can_msg->Data[7]);
-  Serial2.print(scan);
+  UART.print(scan);
 #endif
 }
