@@ -7,8 +7,8 @@ void CAN_message_process(CanMsg *can_msg) {
 
     case MS_WHEEL_BUTTONS_ID: {
         // setting the flag_blocked flag [01 нажата кнопка] [81 пресет/верхняя на руле] []
-        if (r_msg->Data[1] == MS_BTN_STATION) {
-            if (r_msg->Data[0] == BTN_PRESSED) {
+        if (can_msg->Data[1] == MS_BTN_STATION) {
+            if (can_msg->Data[0] == BTN_PRESSED) {
               flag_blocked = true;
               digitalWrite(PC13, PC13ON);
               log("Blocking button is pressed");
@@ -263,9 +263,9 @@ void CAN_message_process(CanMsg *can_msg) {
       }
       else { // check if the climate control menu is pressed
         if (
-          (r_msg->Data[0] == 0x01) and
-          (r_msg->Data[1] == 0x17) and
-          (r_msg->Data[2] == 0x00)      )
+          (can_msg->Data[0] == 0x01) and
+          (can_msg->Data[1] == 0x17) and
+          (can_msg->Data[2] == 0x00)      )
             { // AC triggering script
     //          log("blocking is NOT pressed");
     //          log("Running AC triggering script");

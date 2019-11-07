@@ -51,28 +51,28 @@ void log(String str) {
 /**
    Print out received message to UART out
 */
-void printMsg(CanMsg *r_msg) {
+void printMsg(CanMsg *can_msg) {
 #ifdef DEBUG
   digitalWrite(PC13, PC13ON); // LED shows that recieved data is being printed out
   UART.print(millis());
   UART.print("\t");
-  UART.print(r_msg->ID, HEX);
+  UART.print(can_msg->ID, HEX);
   UART.print(" # ");
-  UART.print(r_msg->Data[0], HEX);
+  UART.print(can_msg->Data[0], HEX);
   UART.print(" ");
-  UART.print(r_msg->Data[1], HEX);
+  UART.print(can_msg->Data[1], HEX);
   UART.print(" ");
-  UART.print(r_msg->Data[2], HEX);
+  UART.print(can_msg->Data[2], HEX);
   UART.print(" ");
-  UART.print(r_msg->Data[3], HEX);
+  UART.print(can_msg->Data[3], HEX);
   UART.print(" ");
-  UART.print(r_msg->Data[4], HEX);
+  UART.print(can_msg->Data[4], HEX);
   UART.print(" ");
-  UART.print(r_msg->Data[5], HEX);
+  UART.print(can_msg->Data[5], HEX);
   UART.print(" ");
-  UART.print(r_msg->Data[6], HEX);
+  UART.print(can_msg->Data[6], HEX);
   UART.print(" ");
-  UART.println(r_msg->Data[7], HEX);
+  UART.println(can_msg->Data[7], HEX);
   digitalWrite(PC13, PC13OFF);
 #endif
 }
