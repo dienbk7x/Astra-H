@@ -110,23 +110,28 @@ void btn_function(byte, byte);
 void setup() {
   UART.begin(115200); // USART on
   CANSetup() ;
+
+  pinMode(PC13, OUTPUT); // LED
+  pinMode(PC14, OUTPUT); // LED ERR
+#ifdef HW_MEDIA_CONTROL
   pinMode(PB12, OUTPUT_OPEN_DRAIN);
   pinMode(PB13, OUTPUT_OPEN_DRAIN);
   pinMode(PB14, OUTPUT_OPEN_DRAIN);
   pinMode(PB15, OUTPUT_OPEN_DRAIN);
-  pinMode(PC13, OUTPUT); // LED
-  pinMode(PC14, OUTPUT); // LED ERR
-  digitalWrite(PC13, PC13ON);
-  digitalWrite(PC13, PC13OFF);
   digitalWrite(PB12, HIGH);
   digitalWrite(PB13, HIGH);
   digitalWrite(PB14, HIGH);
   digitalWrite(PB15, HIGH);
+#endif
+  digitalWrite(PC13, PC13ON);
+  digitalWrite(PC13, PC13OFF);
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                                   LOOP FUNCTIONS                                    //
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 void loop() {
+
+#ifdef HW_MEDIA_CONTROL
   if ((millis() - btn) > 150) {
     digitalWrite(PB12, HIGH);
     digitalWrite(PB13, HIGH);
@@ -134,6 +139,8 @@ void loop() {
     digitalWrite(PB15, HIGH);
     digitalWrite(PC13, HIGH);
   }
+#endif
+
   //*******************************Request for data from the ECC************************
   if ((key_acc == 1) &&  ((millis() - time_request_ecc) > 1000)) {
     SendCANmessage(0x0248, 8, 0x06, 0xAA, 0x01, 0x01, 0x07, 0x10, 0x11, 0x00);
@@ -148,7 +155,7 @@ void loop() {
   if (alarm == 0) {
     message_temp = data_to_str(T_ENG, 0);
   }
-  //*************************Receiving a message with USART2****************************
+  //*************************Receiving a message with USART****************************
   if ((key_acc == 1) && (millis() - Time_USART > 200)) {
     Message_USART = Data_USART();
     Time_USART = millis();
@@ -174,8 +181,8 @@ void loop() {
     Time_Update_Message = millis();
   }
   //***************Check CAN message buffer and process message*************************
-  while (canBus.available() > 0)
-  { CAN_message_process(canBus.recv());
+  while (canBus.available() > 0) {
+  CAN_message_process(canBus.recv());
     canBus.free();
   }
   //******************************* Update display string title **********************************

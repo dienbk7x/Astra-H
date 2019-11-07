@@ -4,6 +4,8 @@
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 void CAN_message_process(CanMsg *can_msg) {
   switch (can_msg->ID)  {
+
+#ifdef HW_MEDIA_CONTROL
     case MS_WHEEL_BUTTONS_ID: {
         switch (can_msg->Data[1]) {
           case MS_BTN_VOL: {
@@ -55,7 +57,7 @@ void CAN_message_process(CanMsg *can_msg) {
             }
           case MS_BTN_LEFT_WHEEL: {
               if (can_msg->Data[0] == BTN_PRESSED) {
-                if ((can_msg->Data[2]) == 0x05) {
+                if ((can_msg->Data[2]) == 0x05) {  /// todo что это??
                   btn_function(MS_BTN_SETTINGS, 0x00);
                   btn = millis();
                 }
@@ -81,6 +83,8 @@ void CAN_message_process(CanMsg *can_msg) {
         }
         break;
       }
+#endif
+
     case MS_ECC_ID: {
         if (can_msg->Data[0] == MS_BATTERY) {
           VOLTAGE = (can_msg->Data[2]);
@@ -239,7 +243,7 @@ void CAN_message_process(CanMsg *can_msg) {
         }
         break;
       }
-    case MS_WINDOW_ID: {
+    case MS_WINDOW_ID: { // todo у меня нет??
         if (can_msg->Data[1] == 0x0C && can_msg->Data[2] == 0x00 && can_msg->Data[3] == 0xC8) { //main
           window =  1;
         }
