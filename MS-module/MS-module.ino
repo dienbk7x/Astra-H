@@ -17,7 +17,7 @@
 //#define HW_MEDIA_CONTROL
 
 // choose UART pins
-#define UART Serial1
+#define UART Serial2
 // Choose CAN pins
 #define CAN_GPIO_PINS_MS CAN_GPIO_PB8_PB9
 

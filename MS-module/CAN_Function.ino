@@ -24,7 +24,7 @@ void CANSetup(void)
   canBus.set_irq_mode();
   nvic_irq_set_priority(NVIC_CAN_RX1, 0);
   nvic_irq_set_priority(NVIC_USB_LP_CAN_RX0, 0);
-  nvic_irq_set_priority(NVIC_USART1, 1); // Choose right USART!
+  nvic_irq_set_priority(NVIC_USART2, 1); // todo что это ?
   Stat = canBus.status();
 #ifdef DEBUG
   if (Stat != CAN_OK) UART.print("Initialization failed");

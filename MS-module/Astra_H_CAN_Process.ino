@@ -274,8 +274,8 @@ void CAN_message_process(CanMsg *can_msg) {
     //          digitalWrite(PC13, PC13OFF);
             } //end AC triggering script
       } // end if
-        break;
-      }
+      break;
+    }
     case MS_WINDOW_ID: { // todo у меня нет??
         if (can_msg->Data[1] == 0x0C && can_msg->Data[2] == 0x00 && can_msg->Data[3] == 0xC8) { //main
           window =  1;
