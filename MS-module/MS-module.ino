@@ -7,7 +7,8 @@
 #define UART Serial2
 // Choose CAN pins
 #define CAN_GPIO_PINS_MS CAN_GPIO_PA11_PA12
-#define CAN_GPIO_PINS_LS CAN_GPIO_PB8_PB9
+//#define CAN_GPIO_PINS_LS CAN_GPIO_PB8_PB9
+#define CAN_SEND_TIMEOUT 800
 // Uncomment to enable 'debug()' messages output
 #define DEBUG
 // Uncomment to enable 'log()' messages output
@@ -22,6 +23,12 @@ volatile bool flag_blocked;
 HardwareCAN canBus(CAN1_BASE);
 CanMsg msg ;
 CanMsg *r_msg;
+
+byte activeBus = 0;
+enum Activebus {
+  LS_BUS = 1,
+  MS_BUS = 2
+};
 
 void setup()
 {
@@ -43,18 +50,19 @@ void setup()
   log("flag_blocked is set to " + flag_blocked);
   wakeUpBus();
   delay(100);
-  wakeUpScreen(); // only MS
+  msWakeUpScreen(); // only MS
   delay(100);
 
+#ifdef CAN_GPIO_PINS_LS
   lsCANSetup();        // Initialize the CAN module
   log("Initialization LS CAN ON");
   wakeUpBus();
   lsBeep(2);
   lsPanelCheck();
-
   playWithEcn();
-
   msCANSetup();
+#endif
+  
   log("end set up");
   digitalWrite(PC13, PC13OFF);
 }
@@ -104,7 +112,7 @@ void loop()
         { // AC triggering script
           log("blocking is NOT pressed");
           log("Running AC triggering script");
-          AC_trigger();
+          msAcTrigger();
           log("Done.");
           digitalWrite(PC13, PC13OFF);
         }

@@ -96,7 +96,7 @@ void msCANSetup(void)
   }
 }
 
-
+#ifdef CAN_GPIO_PINS_LS
 void lsCANSetup(void)
 {
   activeBus = LS_BUS;
@@ -130,18 +130,21 @@ void lsCANSetup(void)
     log("Initialization failed");
   }
 }
-
+#endif
 
 void canRestart(void){
   switch (activeBus) {
+#ifdef CAN_GPIO_PINS_LS
     case LS_BUS:
       lsCANSetup();
       break;
+#endif
     case MS_BUS:
       msCANSetup();
       break;
   }
 }
+
 
 /**
    Print out received message to UART out
@@ -399,7 +402,7 @@ void playWithEcn() {
 /**
    Тестстрелок - кратковременно до максимума
 */
-void panelCheck() {
+void lsPanelCheck() {
   log("==>making panelCheck!");
   // delay(300);
   SendCANmessage(0x255, 8, 0x05, 0xAE, 0x06, 0x01, 0x8A, 0x00, 0x00, 0x00); // speed
