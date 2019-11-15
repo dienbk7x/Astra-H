@@ -80,16 +80,16 @@ String p_message = "";
 String message_temp = "   ";
 //********************************Tab function prototypes*****************************//
 //Announcement of function prototypes from other tabs for correct function call.
-void message_to_DIS (String);
-void message_to_DIS_album (String);
-void message_to_DIS_artist (String);
-String Bold(String);
-String Normal(String);
-String Right(String);
-String Central(String);
-void CAN_message_process(CanMsg*);
-String data_to_str(int, int);
-String data_to_time(int);
+//void message_to_DIS (String);
+//void message_to_DIS_album (String);
+//void message_to_DIS_artist (String);
+//String Bold(String);
+//String Normal(String);
+//String Right(String);
+//String Central(String);
+//void CAN_message_process(CanMsg*);
+//String data_to_str(int, int);
+//String data_to_time(int);
 //************************************************************************************//
 //********************Filling an array with USART characters**************************
 String Data_USART() {
@@ -111,9 +111,9 @@ String Alarm(bool event) {
 //Function prototypes and variables for working with CAN bus, function body in the "Init CAN" tab
 #define CAN_RX_QUEUE_SIZE 36
 HardwareCAN canBus(CAN1_BASE);
-void CANSetup(void);
-void SendCANmessage(long, byte, byte, byte, byte, byte, byte, byte, byte, byte);
-void btn_function(byte, byte);
+//void CANSetup(void);
+//void SendCANmessage(long, byte, byte, byte, byte, byte, byte, byte, byte, byte);
+//void btn_function(byte, byte);
 //*************************************************************************************//
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
@@ -121,6 +121,9 @@ void btn_function(byte, byte);
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 void setup() {
   UART.begin(115200); // USART on
+  Uart.println("#################################")
+  Uart.println("#########  Hello World  #########")
+  Uart.println("#################################")
   CANSetup() ;
 
   pinMode(PC13, OUTPUT); // LED
