@@ -262,7 +262,6 @@ char nibble2c(char c)
       return c+10-'a' ;
    return -1 ;
 }
-
 */
 
 void wakeUpBus() {
