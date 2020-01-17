@@ -49,34 +49,42 @@ enum EcnMode {
   ECN_ESP_OFF,        // спорт -ESP
   ECN_DOORS,          // мониторинг дверей
   ECN_RETURN,         // крайний режим для возврата в ноль
-  ECN_DOORS_AUTO,     // открытые двери (с возвратом в предыдущий режим)
+  ECN_DOORS_AUTO=20,     // открытые двери (с возвратом в предыдущий режим)
   ECN_UNDERVOLTAGE,   // для низкого напряжения
   ECN_OVERHEAT,       // для перегрева
   ECN_STROBS          // для стробов
 };
-// enum EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
-// enum EcnMode savedEcnMode = OFF;
+// EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
+// EcnMode savedEcnMode = OFF;
 byte ecnMode = OFF; // temporary, must be enum for state-machine
 byte savedEcnMode = OFF;
 
-byte activeBus = 0;
+//byte activeBus = 0;
 enum ActiveBus {
+  NO_BUS = 0,
   LS_BUS = 1,
   MS_BUS = 2
 };
+ActiveBus activeBus = NO_BUS; // try "enum" as class
 
+/* Remote key  */
 uint8 keyState = 0x00;
 char keyNum = 0;
 byte keyCode0 = 0x00;
 byte keyCode1 = 0x00;
 
+/* ECN msg sending interval */
 long ecnMillis = 0; // size?
 short ecnWaitTime = 300; // pause between ecn screen update in mode 1
+/* for left knob distinct operation */
 long btnMillis = 0; // size?
 short btnWaitTime = 250; // pause between steering wheel buttons read
+
+/* Vehicle active parameters */
 int coolantTemp;
 int voltage = 0;
 
+/* Speed and all this stuff */
 byte gear = 0;
 uint8 gearFactor = 0;
 byte recommendedGear = 0;
@@ -91,13 +99,10 @@ long dtSpeed400 = 0;
 float accelG = 0;
 
 int taho = 0;
-String msg;
 
-byte pressCloseCount = 0;
-long pressCloseMillis = 0;
-byte pressOpenCount = 0;
-long pressOpenMillis = 0;
+String msg; // for better logging
 
+/* for incoming messages */
 String messageUart;
 uint32_t timeUart = 0; //Variable for the USART buffer fill timer
 
@@ -111,11 +116,14 @@ volatile bool flagThrottle = false;  // флаг нажатой педали г�
 volatile bool flagBackwards = false;  // флаг заднего хода
 volatile bool flagFastBraking = false;  // флаг быстрого снижения скорости
 volatile bool flagUartReceived = false;  // флаг заготовка
-volatile bool flagTopStopSignal = false;  // Горит верхний стоп
+volatile bool flagTopStopSignal = false;  // Горит верхний стоп (был активирован программно, гаснет через 4 секунды сам)
+
 volatile bool flagSportOn = true;  // флаг спорт режима
 long sportMillis = 0; // size?
-short sportWaitTime = 800; // pause between sport mode message
-volatile bool flagEspOff = false;  // флаг есп офф
+short sportWaitTime = 800; // pause between sport mode message // may be eliminated
+long espOffMillis = 0; // size?
+short espOffWaitTime = 600; // pause between sport mode message  // may be eliminated
+
 volatile bool flag = false;  // флаг заготовка
 
 // Saved data of different IDs
@@ -341,7 +349,6 @@ if (ECN_SPORT == ecnMode) {
         }
 
         if (ECN_ESP_OFF == ecnMode){
-            flagEspOff = true;
 //            lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
             msg = "ESPOF";
 
@@ -431,11 +438,7 @@ printMsg();
         lsCloseWindows();
 
       } else if (r_msg->Data[1]==0x20)  { // press open 2-nd time
-//        pressOpenCount ++;
-//      }
-//      if (pressOpenCount > 1) {
         lsOpenWindows(true); // half open
-//        pressOpenCount = 0;
       }
 
 //######################################################################################################
@@ -539,6 +542,13 @@ printMsg();
       #ifdef DEBUG
       printMsg();
       #endif
+      if (ECN_SPORT == ecnMode) {
+          lsSendSportOn();
+      }
+      else if (ECN_ESP_OFF == ecnMode) {
+          lsSendEspOff();
+          lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
+      }
 //######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
       if ((r_msg->Data[0]) & 0x10) {
@@ -650,19 +660,16 @@ printMsg();
     lsDoStrob();
   }
 //######################################################################################################
-  else if (((ECN_SPORT == ecnMode) || (ECN_ESP_OFF == ecnMode) ) && (millis() > sportMillis)) {
+  else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
     sportMillis = millis() + sportWaitTime;
-    if (flagSportOn) {
-        debug("SEND SPORT ON");
         lsSendSportOn();
-    }
-    if (flagEspOff) {
+  }
+//######################################################################################################
+  else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
+    espOffMillis = millis() + espOffWaitTime;
         debug("SEND ESP OFF");
         lsSendEspOff();
         lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
-    }
-  } else if (OFF == ecnMode) {
-    flagEspOff = false;
   }
 //######################################################################################################
 //######################################################################################################
@@ -733,9 +740,9 @@ printMsg();
       } else if (messageUart=="lsOpenRearDoor") {
         lsOpenRearDoor();
       } else if (messageUart=="SportOn") {
-        flagSportOn = !flagSportOn;
+        ecnMode = ECN_SPORT;
       } else if (messageUart=="EspOff") {
-        flagEspOff = !flagEspOff ;
+        ecnMode = ECN_ESP_OFF;
       }
       messageUart = "";
 //      flagUartReceived = false;
