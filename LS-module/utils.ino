@@ -270,8 +270,9 @@ void wakeUpBus() {
   canBus.free();
 }
 
-// ======== LS CAN ==========
+// ======== LS CAN ====================================================
 #ifdef CAN_GPIO_PINS_LS
+// ======== IPC приборка ====================================
 /**
    шлет цифры на дисплей ошибок
    три двухзначных числа
@@ -431,7 +432,38 @@ void tahometer (int taho) {
   uint8 data = map(taho, 0,80, 0x00, 0x7F);
 SendCANmessage(0x255, 8, 0x05, 0xAE, 0x07, 0x01, data, 0x00, 0x00, 0x00); // tacho
 }
+// ======== Индикаторы =========
+/**
+   Индикатор непристегнутого ремня
+*/
+void lsIpcIndicatorNotFastenedOn() {
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x02, 0x08, 0x08, 0x00, 0x00, 0x00);
+}
+void lsIpcIndicatorNotFastenedOff() {
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x02, 0x08, 0x00, 0x00, 0x00, 0x00);
+}
 
+/**
+   Индикатор на кнопке спорт
+*/
+void lsIpcIndicatorSportOn() {
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x0E, 0x20, 0x20, 0x00, 0x00, 0x00);
+}
+void lsIpcIndicatorSportOff() {
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x0E, 0x20, 0x00, 0x00, 0x00, 0x00);
+}
+
+/**
+   Индикатор ESP
+*/
+void lsIpcIndicatorEspOn() {
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x04, 0x02, 0x02, 0x00, 0x00, 0x00);
+}
+void lsIpcIndicatorEspOff() {
+  SendCANmessage(0x255, 8, 0x04, 0xAE, 0x04, 0x02, 0x00, 0x00, 0x00, 0x00);
+}
+
+// ======== CIM подрулевой ====================================
 /**
     издать звуковой сигнал
       перерыв = wait*10 мс
@@ -457,6 +489,9 @@ void lsBeep(uint8 count) {
 void lsBeep() {
   lsBeep(0x1e, 0x03, 0x33);
 }
+
+
+// ======== разное ====================================
 
 /**
  * Мигнуть два раза задними поворотниками
@@ -640,6 +675,10 @@ void lsSendSportOn(void){
     lsId305Data[6],
     0x00
   ); //  0	 0	 0	 0	 3A	 81	 0
+
+  lsIpcIndicatorNotFastenedOn();
+  lsIpcIndicatorSportOn();
+
 }
 
 /**
