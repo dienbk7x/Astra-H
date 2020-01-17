@@ -119,7 +119,7 @@ void lsCANSetup(void)
    canBus.filter(7, 0x370 << 21, 0xFFFFFFFF) ; // handbrake, fog lights, etc...
    canBus.filter(8, 0x500 << 21, 0xFFFFFFFF) ; // voltage
    canBus.filter(9, 0x170 << 21, 0xFFFFFFFF) ; // KEY
-   canBus.filter(10, 0x305 << 21, 0xFFFFFFFF) ; // IPC from central buttons
+   canBus.filter(10, 0x305 << 21, 0xFFFFFFFF) ; // IPC (central buttons + lights)
    debug("filters are set.");
   canBus.set_irq_mode();              // Use irq mode (recommended)
   Stat = canBus.status();
@@ -675,10 +675,6 @@ void lsSendSportOn(void){
     lsId305Data[6],
     0x00
   ); //  0	 0	 0	 0	 3A	 81	 0
-
-  lsIpcIndicatorNotFastenedOn();
-  lsIpcIndicatorSportOn();
-
 }
 
 /**

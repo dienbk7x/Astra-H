@@ -5,12 +5,12 @@
 #include "includes/ls_defines.h"
 #include "includes/ls_module.h"
 
-String VERSION = "1.21";
-String DATE = "2019-10-29";
+String VERSION = "1.22";
+String DATE = "2020-01-17";
 
 //#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
-
+// todo Вынести в settings.h
 // Uncomment to enable 'debug()' messages output
 #define DEBUG
 
@@ -535,7 +535,7 @@ printMsg();
 */
     
 //######################################################################################################
-    } else if (r_msg->ID == 0x305) { // Buttons on central console
+    } else if (r_msg->ID == 0x305) { // IPC (central buttons + lights)
       for(byte i = 0; i<8; i++) {
           lsId305Data[i] = r_msg->Data[i];
       }
@@ -544,10 +544,19 @@ printMsg();
       #endif
       if (ECN_SPORT == ecnMode) {
           lsSendSportOn();
+          lsIpcIndicatorNotFastenedOn();
+          lsIpcIndicatorSportOn();
       }
       else if (ECN_ESP_OFF == ecnMode) {
           lsSendEspOff();
           lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
+          lsIpcIndicatorNotFastenedOn();
+          lsIpcIndicatorSportOn();
+      }
+      else {
+          lsIpcIndicatorSportOff();
+          lsIpcIndicatorNotFastenedOff();
+          lsIpcIndicatorEspOff();
       }
 //######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
@@ -663,6 +672,8 @@ printMsg();
   else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
     sportMillis = millis() + sportWaitTime;
         lsSendSportOn();
+        lsIpcIndicatorNotFastenedOn();
+        lsIpcIndicatorSportOn();
   }
 //######################################################################################################
   else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
@@ -670,6 +681,8 @@ printMsg();
         debug("SEND ESP OFF");
         lsSendEspOff();
         lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
+        lsIpcIndicatorNotFastenedOn();
+        lsIpcIndicatorSportOn();
   }
 //######################################################################################################
 //######################################################################################################
