@@ -52,7 +52,7 @@ enum EcnMode {
   ECN_DOORS_AUTO=20,     // открытые двери (с возвратом в предыдущий режим)
   ECN_UNDERVOLTAGE,   // для низкого напряжения
   ECN_OVERHEAT,       // для перегрева
-  ECN_STROBS          // для стробов
+  ECN_STROBS,         // для стробов
   ECN_STOPS          // для дежопинга
 };
 // EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
