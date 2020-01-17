@@ -673,20 +673,17 @@ printMsg();
 //######################################################################################################
   } else if (ECN_STROBS == ecnMode) {
     lsDoStrob();
-  }
 //######################################################################################################
   } else if (ECN_STOPS == ecnMode) {
     lsDoStops();
-  }
 //######################################################################################################
-  else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
+  } else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
     sportMillis = millis() + sportWaitTime;
         lsSendSportOn();
         lsIpcIndicatorNotFastenedOn();
         lsIpcIndicatorSportOn();
-  }
 //######################################################################################################
-  else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
+  } else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
     espOffMillis = millis() + espOffWaitTime;
         debug("SEND ESP OFF");
         lsSendEspOff();

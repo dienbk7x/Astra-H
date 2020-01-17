@@ -614,14 +614,14 @@ void lsDoStops(){
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x04, 0x00, 0x00, 0x00);
 
   //Мигнуть допстопом times раз с интервалом del
-  void lsTopStopSignalBlink(3, 100)
+  lsTopStopSignalBlink(3, 100);
 
   // выкл задние аварийки
   SendCANmessage(0x251, 8, 0x06, 0xAE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00);
   SendCANmessage(0x255, 8, 0x04, 0xAE, 0x01, 0x04, 0x00, 0x00, 0x00, 0x00);
 
   //Мигнуть допстопом times раз с интервалом del
-  void lsTopStopSignalBlink(3, 100)
+  lsTopStopSignalBlink(3, 100);
 
   // индикатор
   lsIpcIndicatorFogBackOff();
