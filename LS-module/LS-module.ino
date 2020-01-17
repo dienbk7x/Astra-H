@@ -560,9 +560,9 @@ printMsg();
           lsIpcIndicatorSportOn();
       }
       else {
-          lsIpcIndicatorSportOff();
+          // lsIpcIndicatorSportOff();
           lsIpcIndicatorNotFastenedOff();
-          lsIpcIndicatorEspOff();
+          // lsIpcIndicatorEspOff();
       }
 //######################################################################################################
     } else if (r_msg->ID == 0x350) { // backwards drive direction
@@ -677,19 +677,20 @@ printMsg();
   } else if (ECN_STOPS == ecnMode) {
     lsDoStops();
 //######################################################################################################
-  } else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
-    sportMillis = millis() + sportWaitTime;
-        lsSendSportOn();
-        lsIpcIndicatorNotFastenedOn();
-        lsIpcIndicatorSportOn();
+  // } else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
+    // sportMillis = millis() + sportWaitTime;
+        // lsSendSportOn();
+        // lsIpcIndicatorNotFastenedOn();
+        // lsIpcIndicatorSportOn();
 //######################################################################################################
-  } else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
-    espOffMillis = millis() + espOffWaitTime;
-        debug("SEND ESP OFF");
-        lsSendEspOff();
-        lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
-        lsIpcIndicatorNotFastenedOn();
-        lsIpcIndicatorSportOn();
+  // } else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
+    // espOffMillis = millis() + espOffWaitTime;
+        // debug("SEND ESP OFF");
+        // lsSendEspOff();
+        // lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
+        // lsIpcIndicatorNotFastenedOn();
+        // lsIpcIndicatorSportOn();
+//######################################################################################################
   }
 //######################################################################################################
 //######################################################################################################
