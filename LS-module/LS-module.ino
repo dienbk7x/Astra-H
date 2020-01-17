@@ -53,6 +53,7 @@ enum EcnMode {
   ECN_UNDERVOLTAGE,   // для низкого напряжения
   ECN_OVERHEAT,       // для перегрева
   ECN_STROBS          // для стробов
+  ECN_STOPS          // для дежопинга
 };
 // EcnMode ecnMode = OFF; // temporary, must be enum for state-machine
 // EcnMode savedEcnMode = OFF;
@@ -476,6 +477,11 @@ printMsg();
                   (r_msg->Data[7] == 0x01) ) {  // both knobs up
         lsDoThanks();
 
+      } else if ( (r_msg->Data[5] == 0x22) &&
+                  (r_msg->Data[6] == 0x01) &&
+                  (r_msg->Data[7] == 0x1F) ) {  // both knobs down
+        ecnMode = ECN_STOPS;          // для дежопинга
+
       } else if ( (r_msg->Data[5] == 0x10) &&
                   (r_msg->Data[6] == 0x1F) &&
                   (OFF != ecnMode)) {  //   left knob up
@@ -669,6 +675,10 @@ printMsg();
     lsDoStrob();
   }
 //######################################################################################################
+  } else if (ECN_STOPS == ecnMode) {
+    lsDoStops();
+  }
+//######################################################################################################
   else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
     sportMillis = millis() + sportWaitTime;
         lsSendSportOn();
@@ -712,6 +722,7 @@ printMsg();
         log("lsTopStopSignalSet");
         log("lsTopStopSignalSwitch");
         log("lsDoStrob");
+        log("lsDoStops");
         log("lsCloseWindows");
         log("lsOpenWindows");
         log("lsOpenWindows2");
@@ -722,6 +733,8 @@ printMsg();
         delay(3500);
       } else if (messageUart=="lsDoStrob") {
         lsDoStrob();
+      } else if (messageUart=="lsDoStops") {
+        lsDoStops();
       } else if (messageUart=="mode00") {
         ecnMode = OFF;
       } else if (messageUart=="mode++") {
