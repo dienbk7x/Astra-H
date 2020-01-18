@@ -121,9 +121,9 @@ volatile bool flagTopStopSignal = false;  // Горит верхний стоп 
 
 volatile bool flagSportOn = true;  // флаг спорт режима
 long sportMillis = 0; // size?
-short sportWaitTime = 800; // pause between sport mode message // may be eliminated
+short sportWaitTime = 500; // pause between sport mode message // may be eliminated
 long espOffMillis = 0; // size?
-short espOffWaitTime = 600; // pause between sport mode message  // may be eliminated
+short espOffWaitTime = 500; // pause between sport mode message  // may be eliminated
 
 volatile bool flag = false;  // флаг заготовка
 
@@ -677,19 +677,19 @@ printMsg();
   } else if (ECN_STOPS == ecnMode) {
     lsDoStops();
 //######################################################################################################
-  // } else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
-    // sportMillis = millis() + sportWaitTime;
-        // lsSendSportOn();
-        // lsIpcIndicatorNotFastenedOn();
-        // lsIpcIndicatorSportOn();
+  } else if ((ECN_SPORT == ecnMode) && (millis() > sportMillis)) {
+    sportMillis = millis() + sportWaitTime;
+        lsSendSportOn();
+        lsIpcIndicatorNotFastenedOn();
+        lsIpcIndicatorSportOn();
 //######################################################################################################
-  // } else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
-    // espOffMillis = millis() + espOffWaitTime;
-        // debug("SEND ESP OFF");
-        // lsSendEspOff();
-        // lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
-        // lsIpcIndicatorNotFastenedOn();
-        // lsIpcIndicatorSportOn();
+  } else if ( (ECN_ESP_OFF == ecnMode)  && (millis() > espOffMillis)) {
+    espOffMillis = millis() + espOffWaitTime;
+        debug("SEND ESP OFF");
+        lsSendEspOff();
+        lsShowEcn(0x0F,0xFE,0x52); // alike "OFF ESP"
+        lsIpcIndicatorNotFastenedOn();
+        lsIpcIndicatorSportOn();
 //######################################################################################################
   }
 //######################################################################################################
