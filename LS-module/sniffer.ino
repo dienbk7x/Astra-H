@@ -7,6 +7,8 @@ void lsSniffer(){
     while(true) {
         if ( ( r_msg = canBus.recv() ) != NULL ) {
             printMsg();
+            canBus.free();
+
         }
         // ======== Receive a message from UART =======================================================================
         if ((millis() - timeUart > 200)) {   //delay needed to fillup buffers

@@ -549,7 +549,7 @@ printMsg();
       printMsg();
       #endif
 
-      if ((r_msg->Data[2] & 0x30)  && (speed == 0)) {
+      if (flagButtonPressed && (r_msg->Data[6] & 0x01)  && (speed == 0)) {
           lsOpenRearDoor();
       }
 
