@@ -5,8 +5,8 @@
 #include "includes/ls_defines.h"
 #include "includes/ls_module.h"
 
-String VERSION = "1.22";
-String DATE = "2020-01-17";
+String VERSION = "1.23";
+String DATE = "2020-06-10";
 
 //#define ARROWS_TEST
 /////// ============= Настройки модуля! | User settings! ============= ///////
@@ -548,6 +548,11 @@ printMsg();
       #ifdef DEBUG
       printMsg();
       #endif
+
+      if ((r_msg->Data[2] & 0x30)  && (speed == 0) {
+          lsOpenRearDoor();
+      }
+
       if (ECN_SPORT == ecnMode) {
           lsSendSportOn();
           lsIpcIndicatorNotFastenedOn();
@@ -708,6 +713,7 @@ printMsg();
         ecnMode = 0;
         log(line10);
         log("List of commands:");
+        log("sniffer");
         log("mode00");
         log("mode++");
         log("lsCANSetup");
@@ -729,6 +735,8 @@ printMsg();
         log("EspOff");
 //        log("send:id:d0:d1:d2:d3:d4:d5:d6:d7");
         delay(3500);
+      } else if (messageUart=="sniffer") {
+        lsSniffer();
       } else if (messageUart=="lsDoStrob") {
         lsDoStrob();
       } else if (messageUart=="lsDoStops") {
