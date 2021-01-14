@@ -1,4 +1,4 @@
-# Astra-H
+# Astra-H by megadrifter (https://github.com/megadrifter)
 This project [will] contain several modules based on the STM32F103C8T6 "blue pill" hardware.
 Each module has one main CAN interface constantly ON to read and send messages, and one secondary CAN interface that can be switched to for a short time instead of the main, only to send some message to other module.
 For example, MS-module should always listen to MS CAN, then it can switch to LS CAN and send message to LS-module, and switch back immediately.
